@@ -2,8 +2,9 @@
 
 from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -21,13 +22,24 @@ def create_database_engine() -> Engine:
     """Create the configured SQLAlchemy engine."""
     database_url = get_settings().database_url
     _ensure_sqlite_directory(database_url)
-    return create_engine(
+    database_engine = create_engine(
         database_url,
         connect_args=(
             {"check_same_thread": False} if database_url.startswith("sqlite") else {}
         ),
         pool_pre_ping=True,
     )
+    if database_url.startswith("sqlite"):
+
+        @event.listens_for(database_engine, "connect")
+        def enable_sqlite_foreign_keys(
+            dbapi_connection: Any, _: Any
+        ) -> None:
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+
+    return database_engine
 
 
 engine = create_database_engine()

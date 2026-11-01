@@ -1,3 +1,4 @@
+alembic==1.20.1
 fastapi==0.162.0
 pydantic-settings==2.16.2
 SQLAlchemy==2.0.46

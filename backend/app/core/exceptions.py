@@ -5,8 +5,17 @@ from collections.abc import Mapping
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+from app.modules.portfolio import (
+    IdempotencyConflictError,
+    InsufficientCashError,
+    InsufficientHoldingsError,
+    LedgerError,
+    LedgerValidationError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +57,29 @@ def register_exception_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         return JSONResponse(
             status_code=422,
-            content=_error_payload(request, exc.errors()),
+            content=_error_payload(request, jsonable_encoder(exc.errors())),
+            headers=_response_headers(request),
+        )
+
+    @app.exception_handler(LedgerError)
+    async def ledger_exception_handler(
+        request: Request, exc: LedgerError
+    ) -> JSONResponse:
+        status_code = 400
+        if isinstance(
+            exc,
+            (
+                IdempotencyConflictError,
+                InsufficientCashError,
+                InsufficientHoldingsError,
+            ),
+        ):
+            status_code = 409
+        elif isinstance(exc, LedgerValidationError):
+            status_code = 422
+        return JSONResponse(
+            status_code=status_code,
+            content=_error_payload(request, str(exc)),
             headers=_response_headers(request),
         )
 

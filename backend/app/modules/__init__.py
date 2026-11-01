@@ -1,0 +1,1 @@
+"""Independent application domain modules."""

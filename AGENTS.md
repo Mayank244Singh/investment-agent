@@ -12,3 +12,4 @@ Read docs/PROJECT_BRIEF.md at the start of every session.
   or unresolved architectural decision.
 - The risk module must independently validate every trade. No AI or
   forecasting component may bypass it.
+Current milestone: Phase 2. Read docs/PHASE_2_BRIEF.md.

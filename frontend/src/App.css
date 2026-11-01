@@ -72,6 +72,10 @@ h1 {
   padding: 1.25rem;
 }
 
+.dashboard-card-wide {
+  grid-column: span 2;
+}
+
 .dashboard-card h2 {
   font-size: 1rem;
   margin-bottom: 1rem;
@@ -82,9 +86,66 @@ h1 {
   margin-bottom: 0;
 }
 
+.metric-list {
+  display: grid;
+  gap: 0.75rem 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  margin: 0;
+}
+
+.metric-list div {
+  border-left: 2px solid #36527d;
+  padding-left: 0.75rem;
+}
+
+.metric-list dt {
+  color: #9eb1cd;
+  font-size: 0.78rem;
+  margin-bottom: 0.25rem;
+}
+
+.metric-list dd {
+  font-size: 1rem;
+  font-weight: 650;
+  margin: 0;
+}
+
+.rule-list {
+  display: grid;
+  gap: 0.55rem;
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.rule-list li {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.rule-list span,
+.timezone-note {
+  color: #9eb1cd;
+}
+
+.rule-list strong {
+  color: #6ad6ae;
+  font-size: 0.85rem;
+}
+
+.timezone-note {
+  font-size: 0.78rem;
+}
+
 @media (max-width: 600px) {
   .app-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .dashboard-card-wide {
+    grid-column: span 1;
   }
 }
