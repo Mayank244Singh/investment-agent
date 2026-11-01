@@ -1,0 +1,1 @@
+"""Investment Agent backend application."""

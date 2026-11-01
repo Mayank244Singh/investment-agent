@@ -1,0 +1,41 @@
+# Python virtual environments and bytecode
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment files and secrets (keep templates)
+.env
+.env.*
+!.env.example
+!*.env.example
+
+# Local application data
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python tooling and test caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Node dependencies, build output, and coverage
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
