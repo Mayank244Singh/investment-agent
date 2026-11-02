@@ -247,7 +247,7 @@ def test_fifo_matches_real_ledger_service() -> None:
             bar(D3, opened=1200, low=1000, high=1200, previous=1000),
         ),
         p,
-        config(),
+        replace(config(), allow_zero_costs=True),
         strategy,
     )
     assert result.summary.realized_pnl_paise == 200
@@ -331,7 +331,12 @@ def test_stored_db_unchanged_and_unverified_refused(tmp_path: Path) -> None:
     stored = load_stored_prices(path, ("TESTA",))
     with pytest.raises(ValueError, match="unverified"):
         simulate(stored, profile(), config(), lambda view, summary: ())
-    simulate(stored, profile(verified=True), config(), lambda view, summary: ())
+    simulate(
+        stored,
+        profile(verified=True, slippage_bps=Decimal("1")),
+        config(),
+        lambda view, summary: (),
+    )
     assert hashlib.sha256(path.read_bytes()).hexdigest() == before
 
 

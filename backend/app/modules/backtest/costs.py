@@ -28,6 +28,24 @@ class CostProfile:
     depository_sell_paise: int
     slippage_bps: Decimal
 
+    @property
+    def has_transaction_costs(self) -> bool:
+        """GST by itself cannot create a charge without a taxable base."""
+        return (
+            any(
+                rate > 0
+                for rate in (
+                    self.brokerage_bps,
+                    self.stt_buy_bps,
+                    self.stt_sell_bps,
+                    self.exchange_bps,
+                    self.regulator_bps,
+                    self.stamp_buy_bps,
+                )
+            )
+            or self.depository_sell_paise > 0
+        )
+
     def __post_init__(self) -> None:
         if not isinstance(self.verified, bool):
             raise ValueError("cost profile verification flag must be boolean")

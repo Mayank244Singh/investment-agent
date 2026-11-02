@@ -8,6 +8,7 @@
   "corporate_action_mode": "stop",
   "minimum_history_days": 252,
   "annualisation_warning_days": 756,
+  "allow_zero_costs": false,
   "risk_limits": {
     "max_order_percent": "10",
     "max_stock_allocation_percent": "20",

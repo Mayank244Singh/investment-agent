@@ -79,6 +79,7 @@ def load_run_settings(path: Path) -> RunSettings:
         corporate_action_mode=value.get("corporate_action_mode", "stop"),
         minimum_history_days=value.get("minimum_history_days", 252),
         annualisation_warning_days=value.get("annualisation_warning_days", 756),
+        allow_zero_costs=value.get("allow_zero_costs", False),
     )
     return RunSettings(
         simulation=simulation,

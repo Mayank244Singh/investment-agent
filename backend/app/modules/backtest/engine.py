@@ -36,6 +36,7 @@ class SimulationConfig:
     corporate_action_mode: Literal["stop", "exclude"] = "stop"
     minimum_history_days: int = 252
     annualisation_warning_days: int = 756
+    allow_zero_costs: bool = False
 
     def __post_init__(self) -> None:
         percents = (
@@ -68,6 +69,7 @@ class SimulationConfig:
             or self.corporate_action_mode not in {"stop", "exclude"}
             or self.minimum_history_days < 1
             or self.annualisation_warning_days < self.minimum_history_days
+            or not isinstance(self.allow_zero_costs, bool)
         ):
             raise ValueError("invalid simulation configuration")
         try:
@@ -180,6 +182,12 @@ def simulate(
         raise ValueError("invalid risk mode")
     if data.origin == "stored" and not profile.verified:
         raise ValueError("broker cost profile is unverified for stored prices")
+    if not profile.has_transaction_costs and not config.allow_zero_costs:
+        raise ValueError(
+            "transaction cost rates are zero; set allow_zero_costs=true explicitly"
+        )
+    if data.origin == "stored" and profile.slippage_bps <= 0:
+        raise ValueError("stored-price backtests require positive slippage")
     if not data.days:
         raise ValueError("no bars in configured universe")
     engine = create_engine("sqlite+pysqlite:///:memory:")
@@ -188,6 +196,10 @@ def simulate(
     rejections: list[Rejection] = []
     reductions: list[Reduction] = []
     warnings: list[str] = []
+    if not profile.has_transaction_costs:
+        warnings.append(
+            "Zero transaction costs explicitly allowed; results omit trading charges"
+        )
     marks: dict[str, tuple[date, int, bool]] = {}
     previous: dict[str, Bar] = {}
     excluded: set[str] = set()

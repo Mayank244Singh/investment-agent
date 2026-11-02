@@ -52,6 +52,7 @@ def configuration(*, universe: tuple[str, ...] = SYMBOLS) -> SimulationConfig:
         DAY,
         RiskLimits(Decimal(10), Decimal(20), Decimal(1), Decimal(2), "Asia/Kolkata"),
         max_previous_volume_percent=Decimal(100),
+        allow_zero_costs=True,
     )
 
 
@@ -245,6 +246,63 @@ def test_cost_drag_and_rejection_counts_are_reported() -> None:
     assert values.rejected_trade_count == len(result.rejections)
 
 
+def test_placeholder_costs_create_gross_net_gap_after_a_fill() -> None:
+    """Synthetic placeholder charges must be visible in reported returns."""
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "config"
+        / ("backtest-cost-placeholder-2026-11-02.json")
+    )
+    placeholder = CostProfile.from_json(path)
+    assert not placeholder.verified
+    cfg = replace(
+        configuration(),
+        risk_limits=RiskLimits(
+            Decimal(20), Decimal(20), Decimal(1), Decimal(2), "Asia/Kolkata"
+        ),
+    )
+    result = simulate(bars(), placeholder, cfg, buy_and_hold(cfg))
+    values = metrics(result, cfg)
+    assert result.fills
+    assert values.gross_return_percent > values.net_return_percent
+    assert values.total_costs_paise > 0
+    assert values.cost_drag_paise >= values.total_costs_paise
+
+
+def test_zero_transaction_costs_refused_without_explicit_override() -> None:
+    cfg = replace(configuration(), allow_zero_costs=False)
+    with pytest.raises(ValueError, match="allow_zero_costs=true"):
+        simulate(bars(), zero_profile(), cfg, buy_and_hold(cfg))
+    gst_only = replace(zero_profile(), gst_bps=Decimal("1800"))
+    with pytest.raises(ValueError, match="allow_zero_costs=true"):
+        simulate(bars(), gst_only, cfg, buy_and_hold(cfg))
+    slippage_only = replace(zero_profile(), slippage_bps=Decimal("10"))
+    with pytest.raises(ValueError, match="allow_zero_costs=true"):
+        simulate(bars(), slippage_only, cfg, buy_and_hold(cfg))
+
+
+def test_zero_transaction_cost_override_warns() -> None:
+    cfg = configuration()
+    result = simulate(bars(), zero_profile(), cfg, buy_and_hold(cfg))
+    assert result.fills
+    assert any(
+        "Zero transaction costs explicitly allowed" in warning
+        for warning in result.warnings
+    )
+
+
+def test_stored_prices_require_positive_slippage_even_with_costs() -> None:
+    profile_path = (
+        Path(__file__).resolve().parents[1]
+        / "config"
+        / ("backtest-cost-placeholder-2026-11-02.json")
+    )
+    charged = replace(CostProfile.from_json(profile_path), verified=True)
+    stored_origin = PriceData(bars().ordered_bars(), origin="stored")
+    with pytest.raises(ValueError, match="positive slippage"):
+        simulate(stored_origin, charged, configuration(), buy_and_hold(configuration()))
+
+
 def test_cli_banner_and_no_env_dependency(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -331,3 +389,35 @@ def test_cli_banner_and_no_env_dependency(
         )
         == 1
     )
+    capsys.readouterr()
+    zero_profile_data = json.loads(profile_path.read_text())
+    for field in (
+        "brokerage_bps",
+        "stt_buy_bps",
+        "stt_sell_bps",
+        "exchange_bps",
+        "regulator_bps",
+        "stamp_buy_bps",
+        "gst_bps",
+    ):
+        zero_profile_data[field] = "0"
+    zero_profile_data["depository_sell_paise"] = 0
+    zero_path = tmp_path / "zero-cost-profile.json"
+    zero_path.write_text(json.dumps(zero_profile_data))
+    zero_args = [
+        "backtest",
+        "--config",
+        str(config_path),
+        "--cost-profile",
+        str(zero_path),
+        "--synthetic-bars",
+        str(bars_path),
+        "--runs-directory",
+        str(tmp_path / "runs"),
+    ]
+    assert main(zero_args) == 1
+    assert "allow_zero_costs=true" in capsys.readouterr().err
+    cfg["allow_zero_costs"] = True
+    config_path.write_text(json.dumps(cfg))
+    assert main(zero_args) == 0
+    assert "Zero transaction costs explicitly allowed" in capsys.readouterr().out
