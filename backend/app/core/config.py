@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     backend_host: str = "127.0.0.1"
     backup_directory: Path = PROJECT_ROOT / "backups"
     backup_retention_count: PositiveCount = 10
+    max_import_uncompressed_mb: PositiveCount = 50
+    price_staleness_days: PositiveCount = 5
     risk_max_order_percent: RiskPercent = Decimal("10")
     risk_max_stock_allocation_percent: RiskPercent = Decimal("20")
     risk_max_loss_per_trade_percent: RiskPercent = Decimal("1")

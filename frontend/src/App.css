@@ -110,6 +110,35 @@ h1 {
   margin: 0;
 }
 
+.price-context {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.valuation-list,
+.coverage-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.valuation-list > li {
+  border-bottom: 1px solid #263857;
+  padding: 0.85rem 0;
+}
+
+.valuation-list h3,
+.dashboard-card h3 {
+  font-size: 0.9rem;
+  margin: 0 0 0.65rem;
+}
+
+.coverage-list li {
+  color: #9eb1cd;
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+}
+
 .rule-list {
   display: grid;
   gap: 0.55rem;

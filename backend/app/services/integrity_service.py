@@ -1,8 +1,11 @@
 """Read-only reconciliation of the persisted portfolio ledger."""
 
+import re
 import sqlite3
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 @dataclass(frozen=True)
@@ -77,6 +80,7 @@ def check_ledger_integrity(database_path: Path) -> IntegrityResult:
         with _open_read_only(path) as connection:
             connection.row_factory = sqlite3.Row
             _check_sqlite_integrity(connection, discrepancies)
+            _check_price_data(connection, discrepancies)
             movements = _load_movements(connection)
             transactions = _load_transactions(connection)
             lots = _load_lots(connection)
@@ -116,6 +120,129 @@ def _check_sqlite_integrity(
             "Foreign-key violation: "
             f"table={table}, row={row_id}, parent={parent}, key={foreign_key}"
         )
+
+
+def _check_price_data(connection: sqlite3.Connection, discrepancies: list[str]) -> None:
+    """Check stored EQ prices and provenance without modifying SQLite."""
+    required = {"instruments", "daily_prices", "import_batches"}
+    present = {
+        str(row[0])
+        for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name IN ('instruments', 'daily_prices', 'import_batches')"
+        )
+    }
+    if missing := required - present:
+        discrepancies.append(
+            f"Price tables missing: {', '.join(sorted(missing))}; run migrations"
+        )
+        return
+
+    for instrument in connection.execute(
+        "SELECT id, symbol, series, isin FROM instruments ORDER BY id"
+    ):
+        label = f"Instrument {instrument['id']} ({instrument['symbol']})"
+        if instrument["series"] != "EQ":
+            discrepancies.append(f"{label} has unsupported series")
+        isin = instrument["isin"]
+        if isin is None or isin == "":
+            discrepancies.append(f"{label} has a missing ISIN")
+        elif not _valid_isin(str(isin)):
+            discrepancies.append(f"{label} has an inconsistent ISIN")
+
+    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    for price in connection.execute(
+        """SELECT p.id, p.instrument_id, p.import_batch_id, p.trade_date,
+                  p.open_paise, p.high_paise, p.low_paise, p.close_paise,
+                  p.previous_close_paise, p.volume, p.price_basis,
+                  i.id AS valid_instrument, b.id AS valid_batch
+           FROM daily_prices AS p
+           LEFT JOIN instruments AS i ON i.id = p.instrument_id
+           LEFT JOIN import_batches AS b ON b.id = p.import_batch_id
+           ORDER BY p.id"""
+    ):
+        label = f"Daily price {price['id']}"
+        if price["valid_instrument"] is None:
+            discrepancies.append(f"{label} has no valid instrument")
+        if price["valid_batch"] is None:
+            discrepancies.append(f"{label} has no valid import batch")
+        for column in (
+            "open_paise",
+            "high_paise",
+            "low_paise",
+            "close_paise",
+            "previous_close_paise",
+        ):
+            amount = price[column]
+            if type(amount) is not int or amount <= 0:
+                discrepancies.append(f"{label} has non-positive or invalid {column}")
+        low, high = price["low_paise"], price["high_paise"]
+        opening, closing = price["open_paise"], price["close_paise"]
+        if all(type(value) is int for value in (low, high, opening, closing)):
+            if low > high:
+                discrepancies.append(f"{label} has low greater than high")
+            if not low <= opening <= high:
+                discrepancies.append(f"{label} has open outside low-high range")
+            if not low <= closing <= high:
+                discrepancies.append(f"{label} has close outside low-high range")
+        volume = price["volume"]
+        if type(volume) is not int or volume < 0:
+            discrepancies.append(f"{label} has negative or invalid volume")
+        if price["price_basis"] != "unadjusted":
+            discrepancies.append(f"{label} has unsupported price basis")
+        try:
+            trade_date = date.fromisoformat(str(price["trade_date"]))
+            if trade_date.isoformat() != price["trade_date"]:
+                raise ValueError("noncanonical date")
+        except ValueError:
+            discrepancies.append(f"{label} has invalid trade date")
+        else:
+            if trade_date > today:
+                discrepancies.append(
+                    f"{label} is dated in the future ({trade_date.isoformat()})"
+                )
+
+    for instrument_id, trade_date, count in connection.execute(
+        """SELECT instrument_id, trade_date, COUNT(*)
+           FROM daily_prices
+           GROUP BY instrument_id, trade_date HAVING COUNT(*) > 1"""
+    ):
+        discrepancies.append(
+            f"Duplicate daily prices for instrument {instrument_id} "
+            f"on {trade_date}: {count} rows"
+        )
+
+    for batch in connection.execute(
+        """SELECT b.id, b.total_rows, b.imported_rows, b.skipped_rows,
+                  b.rejected_rows, COUNT(p.id) AS linked_rows
+           FROM import_batches AS b
+           LEFT JOIN daily_prices AS p ON p.import_batch_id = b.id
+           GROUP BY b.id ORDER BY b.id"""
+    ):
+        label = f"Import batch {batch['id']}"
+        if batch["imported_rows"] != batch["linked_rows"]:
+            discrepancies.append(
+                f"{label} stores imported_rows={batch['imported_rows']} "
+                f"but has {batch['linked_rows']} linked daily prices"
+            )
+        if batch["total_rows"] != (
+            batch["imported_rows"] + batch["skipped_rows"] + batch["rejected_rows"]
+        ):
+            discrepancies.append(f"{label} row counts do not reconcile")
+
+
+def _valid_isin(value: str) -> bool:
+    """Check the stored ISIN shape and ISO 6166 Luhn check digit."""
+    if re.fullmatch(r"[A-Z]{2}[A-Z0-9]{9}[0-9]", value) is None:
+        return False
+    expanded = "".join(
+        str(ord(char) - 55) if char.isalpha() else char for char in value
+    )
+    checksum = sum(
+        (digit * 2 // 10 + digit * 2 % 10) if index % 2 else digit
+        for index, digit in enumerate(int(char) for char in reversed(expanded))
+    )
+    return checksum % 10 == 0
 
 
 def _load_movements(connection: sqlite3.Connection) -> list[Movement]:

@@ -3,8 +3,12 @@ import { useEffect, useState } from "react";
 import {
   getHealth,
   getLedger,
+  getPortfolioValuation,
+  getPriceCoverage,
   getRiskRules,
   type LedgerResponse,
+  type PortfolioValuationResponse,
+  type PriceCoverageResponse,
   type RiskRulesResponse,
 } from "./api/client";
 import "./App.css";
@@ -24,6 +28,12 @@ function App() {
   const [riskRules, setRiskRules] = useState<LoadState<RiskRulesResponse>>({
     state: "loading",
   });
+  const [valuation, setValuation] = useState<LoadState<PortfolioValuationResponse>>({
+    state: "loading",
+  });
+  const [priceCoverage, setPriceCoverage] = useState<LoadState<PriceCoverageResponse>>({
+    state: "loading",
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -39,6 +49,14 @@ function App() {
     void getRiskRules().then(
       (data) => isMounted && setRiskRules({ state: "ready", data }),
       () => isMounted && setRiskRules({ state: "error" }),
+    );
+    void getPortfolioValuation().then(
+      (data) => isMounted && setValuation({ state: "ready", data }),
+      () => isMounted && setValuation({ state: "error" }),
+    );
+    void getPriceCoverage().then(
+      (data) => isMounted && setPriceCoverage({ state: "ready", data }),
+      () => isMounted && setPriceCoverage({ state: "error" }),
     );
 
     return () => {
@@ -59,6 +77,8 @@ function App() {
       <section className="dashboard-grid" aria-label="Dashboard">
         <StatusCard title="Market overview" status="Unavailable" />
         <PortfolioCard ledger={ledger} />
+        <ValuationCard valuation={valuation} />
+        <PriceCoverageCard coverage={priceCoverage} />
         <StatusCard title="Intraday engine" status="Not implemented" />
         <StatusCard title="Swing engine" status="Not implemented" />
         <StatusCard title="Long-term engine" status="Not implemented" />
@@ -67,6 +87,147 @@ function App() {
       </section>
     </main>
   );
+}
+
+function ValuationCard({
+  valuation,
+}: {
+  valuation: LoadState<PortfolioValuationResponse>;
+}) {
+  if (valuation.state === "loading") {
+    return <StatusCard title="End-of-day valuation" status="Loading" />;
+  }
+  if (valuation.state === "error") {
+    return <StatusCard title="End-of-day valuation" status="Error loading valuation" />;
+  }
+  if (valuation.data.holdings.length === 0) {
+    return <StatusCard title="End-of-day valuation" status="No data" />;
+  }
+
+  const { holdings, totals, as_of_date } = valuation.data;
+  const pricedDates = holdings
+    .filter((item) => item.status === "priced")
+    .map((item) => `${item.symbol} ${item.last_price_date}`)
+    .join(", ");
+  return (
+    <article className="dashboard-card dashboard-card-wide">
+      <h2>End-of-day valuation</h2>
+      <p className="timezone-note">As of {as_of_date} · end-of-day prices only</p>
+      <ul className="valuation-list">
+        {holdings.map((holding) => (
+          <li key={holding.symbol}>
+            <h3>{holding.symbol}</h3>
+            {holding.status === "priced" ? (
+              <dl className="metric-list">
+                <Metric
+                  label="Close"
+                  value={formatPaise(holding.close_paise)}
+                  priceDates={holding.last_price_date}
+                />
+                <Metric
+                  label="Market value"
+                  value={formatPaise(holding.market_value_paise)}
+                  priceDates={holding.last_price_date}
+                />
+                <Metric
+                  label="Unrealised P&L"
+                  value={formatPaise(holding.unrealized_pnl_paise)}
+                  priceDates={holding.last_price_date}
+                />
+              </dl>
+            ) : (
+              <p>
+                Unavailable: {unavailableReason(holding.unavailable_reason)}.
+                Last price date: {holding.last_price_date ?? "None"}.
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+      <h3>Totals</h3>
+      <dl className="metric-list">
+        <Metric label="Priced holdings" value={String(totals.priced_holdings_count)} />
+        {totals.priced_holdings_count > 0 && (
+          <>
+            <Metric
+              label="Priced holdings market value"
+              value={formatPaise(totals.priced_market_value_paise)}
+              priceDates={pricedDates}
+            />
+            <Metric
+              label="Priced holdings unrealised P&L"
+              value={formatPaise(totals.priced_unrealized_pnl_paise)}
+              priceDates={pricedDates}
+            />
+          </>
+        )}
+        <Metric label="Unpriced holdings" value={String(totals.unpriced_holdings_count)} />
+        {totals.unpriced_holdings_count > 0 && (
+          <Metric
+            label="Unpriced cost basis"
+            value={formatPaise(totals.unpriced_cost_basis_paise)}
+          />
+        )}
+      </dl>
+    </article>
+  );
+}
+
+function PriceCoverageCard({
+  coverage,
+}: {
+  coverage: LoadState<PriceCoverageResponse>;
+}) {
+  if (coverage.state === "loading") {
+    return <StatusCard title="Price coverage" status="Loading" />;
+  }
+  if (coverage.state === "error") {
+    return <StatusCard title="Price coverage" status="Error loading price coverage" />;
+  }
+  if (coverage.data.symbols.length === 0 && coverage.data.import_batches.length === 0) {
+    return <StatusCard title="Price coverage" status="No data" />;
+  }
+  return (
+    <article className="dashboard-card dashboard-card-wide">
+      <h2>Price coverage</h2>
+      <p className="timezone-note">End-of-day EQ prices</p>
+      {coverage.data.symbols.length === 0 ? (
+        <p>No EQ prices</p>
+      ) : (
+        <details>
+          <summary>Symbols with prices: {coverage.data.symbols.length}</summary>
+          <ul className="coverage-list">
+            {coverage.data.symbols.map((item) => (
+              <li key={item.symbol}>
+                {item.symbol}: End-of-day {item.latest_price_date ?? "Unavailable"}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+      <h3>Import batches</h3>
+      <ul className="coverage-list">
+        {coverage.data.import_batches.map((batch) => (
+          <li key={batch.id}>
+            <strong>{batch.source_label}</strong> · {batch.file_name} ·
+            imported {batch.imported_rows}, skipped {batch.skipped_rows},
+            rejected {batch.rejected_rows}
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
+function unavailableReason(reason: string): string {
+  switch (reason) {
+    case "stale_price":
+      return "last end-of-day price is stale";
+    case "no_price_on_or_before_as_of":
+      return "no end-of-day price on or before the as-of date";
+    default:
+      return "no EQ end-of-day price";
+  }
 }
 
 function PortfolioCard({ ledger }: { ledger: LoadState<LedgerResponse> }) {
@@ -155,21 +316,39 @@ function StatusCard({ title, status }: { title: string; status: string }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  priceDates,
+}: {
+  label: string;
+  value: string;
+  priceDates?: string;
+}) {
   return (
-    <div>
-      <dt>{label}</dt>
+    <div data-testid={priceDates ? "price-figure" : undefined}>
+      <dt>
+        {label}
+        {priceDates && <span className="price-context">End-of-day price date: {priceDates}</span>}
+      </dt>
       <dd>{value}</dd>
     </div>
   );
 }
 
 function formatPaise(paise: number): string {
-  const sign = paise < 0 ? "-" : "";
-  const absolute = Math.abs(paise);
-  const rupees = Math.trunc(absolute / 100).toLocaleString("en-IN");
-  const remainder = (absolute % 100).toString().padStart(2, "0");
-  return `${sign}₹${rupees}.${remainder}`;
+  if (!Number.isSafeInteger(paise)) {
+    return "Unavailable";
+  }
+  const value = BigInt(paise);
+  const negative = value < 0n;
+  const absolute = negative ? -value : value;
+  const digits = (absolute / 100n).toString();
+  const grouped = digits.length <= 3
+    ? digits
+    : `${digits.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",")},${digits.slice(-3)}`;
+  const paiseDigits = (absolute % 100n).toString().padStart(2, "0");
+  return `${negative ? "-" : ""}₹${grouped}.${paiseDigits}`;
 }
 
 function BackendStatusIndicator({ status }: { status: BackendStatus }) {

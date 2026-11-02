@@ -1,6 +1,6 @@
 # Investment Agent
 
-A local Indian-market portfolio-management foundation with an append-only FIFO ledger, realised P&L, a Profit Vault, independent trade-risk validation, bearer authentication, verified SQLite backups, guarded restore, and read-only integrity checks. It does not provide market data, investment advice, predictions, trading strategies, broker integration, or order execution.
+A local Indian-market portfolio manager with an append-only FIFO ledger, realised P&L, a Profit Vault, independent trade-risk validation, bearer authentication, SQLite backups, guarded restore, read-only integrity checks, and manually imported end-of-day prices. It does not provide live market data, investment advice, predictions, trading strategies, broker integration, or order execution.
 
 ## Prerequisites
 
@@ -33,6 +33,8 @@ chmod 600 .env
 
 Never commit `.env`, print the token, or place it in frontend source or a `VITE_` variable.
 
+`DATABASE_URL` in `.env` selects the SQLite file; the CLI's `--database` option overrides that setting for one command.
+
 ## Run locally
 
 Use two terminals from the repository root.
@@ -49,10 +51,26 @@ The backend refuses to start without `AUTH_TOKEN` unless `AUTH_DISABLED=true` is
 
 The Vite development server reads the non-`VITE_` token only in its Node-side configuration and adds the bearer header while proxying `/api` to `http://127.0.0.1:8000`. This is a **development-only** authentication approach: anyone who can reach the Vite port can use the authenticated proxy. Never expose port 5173 to a network, and do not use this proxy design for deployed static assets.
 
+## Daily manual price routine
+
+After each trading day, check the data source's terms yourself, download **one** supported cash-market bhavcopy ZIP manually, and keep it outside the repository (for example in `../sample-data/`). The application never downloads prices. Once the Phase 4 migration has been applied, import the file from the repository root:
+
+```sh
+.venv/bin/alembic -c backend/alembic.ini upgrade head
+PYTHONPATH=backend .venv/bin/python -m app.cli import-prices ../sample-data/BhavCopy_NSE_CM_0_0_0_YYYYMMDD_F_0000.csv.zip --source-label "NSE manual bhavcopy"
+PYTHONPATH=backend .venv/bin/python -m app.cli integrity
+```
+
+Replace `YYYYMMDD` with the trading date. The importer accepts only its exact observed ZIP and CSV profile, reads the ZIP in memory, stores EQ rows only, reports skipped series and rejected rows, and commits a valid file atomically. The same file hash is a no-op. `--skip-bad-rows` is optional; without it, any bad EQ row rejects the whole file. Check the **Price coverage** panel in the local dashboard for the latest date per symbol, source label, file name, and import counts. Use `--database /path/to/copy.db` to target a disposable database for practice.
+
+An **Unavailable** holding has no EQ close on or before the as-of date or its last close is older than `PRICE_STALENESS_DAYS` calendar days (default 5). The dashboard shows the reason and last price date when one exists; it never estimates or inserts a zero value. Market value and unrealised P&L totals cover priced holdings only, and unpriced holdings' FIFO cost is shown separately. Every displayed price is labelled end-of-day and dated.
+
 ## Current API
 
 - `GET /api/v1/health`: database health check
 - `GET /api/v1/portfolio/ledger`: append-only ledger and book-cost summary
+- `GET /api/v1/portfolio/valuation`: dated end-of-day valuation and priced/unpriced totals
+- `GET /api/v1/prices/coverage`: latest EQ dates and import-batch provenance
 - `GET /api/v1/risk/rules`: validated non-secret risk configuration
 - `POST /api/v1/risk/validate`: validate a `ProposedTrade`; nothing is executed or stored as an order
 - `POST /api/v1/portfolio/deposits`: append a historical deposit
@@ -78,7 +96,7 @@ Run the ledger reconciliation without modifying the database:
 PYTHONPATH=backend .venv/bin/python -m app.cli integrity
 ```
 
-The integrity command opens SQLite with `mode=ro`, lists every discrepancy, and exits non-zero on failure. Negative final cash is treated as a likely missing deposit entry.
+The integrity command opens SQLite with `mode=ro`, checks both ledger and imported price data, lists every discrepancy, and exits non-zero on failure. Negative final cash is treated as a likely missing deposit entry; missing or malformed stored ISINs are also reported.
 
 To restore:
 
@@ -133,11 +151,11 @@ cd frontend && npm run build
 
 The backend separates HTTP routes, services, schemas, domain modules, and database infrastructure. Routes call services; portfolio and risk business rules live in `modules`; schemas define API contracts; and database code is isolated in `db`. Configuration is environment-based, logs are structured JSON with request IDs, central exception handlers produce consistent error responses, and authentication is applied at the protected API-router boundary.
 
-Money is stored as integer paise. Buys create FIFO lots including buy fees; sells consume those lots atomically, subtract sell fees from proceeds, record realised P&L, and credit only positive sale profit to the Profit Vault. There is no unrealised P&L because no verified market-price source exists.
+Money and end-of-day prices are stored as integer paise. Buys create FIFO lots including buy fees; sells consume those lots atomically, subtract sell fees from proceeds, record realised P&L, and credit only positive sale profit to the Profit Vault. Manually imported unadjusted EQ closes provide as-of market value and unrealised P&L when recent enough; otherwise holdings remain unavailable.
 
 The risk validator receives a portfolio snapshot and never queries the database. Its limits come from validated settings, it returns every rejection reason, and it fails closed when configuration, inputs, snapshot data, or rule execution is invalid.
 
-The frontend is a React/TypeScript dashboard. Its typed client reads the ledger and risk-rule endpoints through Vite’s `/api` proxy. It shows real book-cost data, “No data” for an empty ledger, and “Unavailable” on API errors; it does not fabricate values.
+The frontend is a React/TypeScript dashboard. Its typed client reads the ledger, risk, valuation, and coverage endpoints through Vite’s `/api` proxy. It shows book-cost and dated end-of-day values, “No data” for empty responses, and an error state on API failures; it does not fabricate values.
 
 ## Layout
 
@@ -167,14 +185,17 @@ backups/            verified local SQLite backups (ignored by Git)
 - Backups are not application-encrypted. Protect the Mac, `.env`, backup directory, and external drive with OS-level security.
 - Restore must be run with the servers stopped; the CLI does not terminate running application processes.
 - Integrity checks detect accounting and SQLite inconsistencies but do not provide cryptographic tamper evidence.
-- There is still no unrealised P&L or verified market-price source.
+- Price format and `ClsPric` semantics are observed from samples, not verified against an official format specification. The user must confirm the source's terms and closing-price meaning.
+- End-of-day prices are unadjusted; returns across splits, bonuses, and dividends must wait for corporate-action handling.
+- Prices are manual, EQ-only, and limited by the configurable calendar-day staleness threshold; there are no live quotes or automatic downloads.
+- Ticker changes create separate symbol histories; risk capital and risk limits still use FIFO cost, not market value.
 
 ## Planned extension points
 
-- Authorized market-data ingestion and historical storage
+- Corporate-action adjustments and explicit ticker-history mapping after approval
 - Additional portfolio and performance reporting
 - Independent risk validation before every paper or broker order
 - Research, fundamentals, ranking, rotation, backtesting, and paper trading
 - Broker integration only after explicit approval and regulatory review
 
-See [ADR 0001](docs/adr/0001-architecture.md) for the original layering decision, [ADR 0002](docs/adr/0002-portfolio-ledger-and-risk.md) for FIFO accounting and fail-closed risk validation, and [ADR 0003](docs/adr/0003-hardening.md) for authentication, backup, restore, and integrity decisions.
+See [ADR 0001](docs/adr/0001-architecture.md) for the original layering decision, [ADR 0002](docs/adr/0002-portfolio-ledger-and-risk.md) for FIFO accounting and fail-closed risk validation, [ADR 0003](docs/adr/0003-hardening.md) for local security and backup decisions, and [ADR 0004](docs/adr/0004-price-data.md) for the observed price profile and its limits.

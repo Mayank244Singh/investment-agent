@@ -29,10 +29,12 @@
 ## Known Issues
 
 - The execution sandbox denies local port binding (`EPERM`) for Uvicorn and Vite. End-to-end proxy verification must be run manually in a local terminal; the user has verified it succeeds there.
+- Phase 4's dashboard panels have automated API and UI tests, but a browser check against an imported temporary database is still needed outside the sandbox.
+- The bhavcopy profile was observed in five samples, not verified against an official specification; the user must verify `ClsPric` semantics and source terms before real use.
 
 ## Next Task
 
-Run the manual Phase 3 authentication, backup/restore, integrity-corruption, and Git tracking audit.
+Run a user-reviewed manual dashboard check against a temporary imported database, then seek approval before any next milestone or real-data migration.
 
 ## Phase 2: Portfolio Ledger and Risk Validator
 
@@ -82,3 +84,22 @@ Run the manual Phase 3 authentication, backup/restore, integrity-corruption, and
 - API documentation is available only for the exact `127.0.0.1` backend host, and CORS permits only `http://127.0.0.1:5173`.
 - The Vite development server binds to `127.0.0.1` and injects the non-`VITE_` token only in its server-side proxy.
 - Negative final cash is an integrity failure indicating a likely missing deposit; intermediate dated balances are not checked.
+
+## Phase 4: Historical end-of-day prices
+
+- [x] Add instruments, daily_prices, and import_batches models with database constraints and a migration tested for upgrade and downgrade on a temporary database.
+- [x] Implement the local ZIP importer and CLI with strict observed-profile headers, date checks, Decimal-to-paise parsing, EQ-only storage, conflict detection, and optional skip-bad-rows reporting; verify with synthetic fixtures and temporary databases.
+- [x] Add as-of valuation with a configurable five-calendar-day staleness limit, priced and unpriced totals, and explicit unavailable reasons.
+- [x] Add authenticated read APIs for valuation and price coverage, with temporary-database tests.
+- [x] Display end-of-day price coverage and per-holding valuation in the dashboard, with empty, unavailable, stale, and API error states; verify frontend tests, lint, and build.
+- [x] Extend the read-only integrity command for price, instrument, date, and import-batch discrepancies, with corruption tests on temporary databases.
+- [x] Update README with the daily manual import routine, unavailable semantics, and staleness configuration; record the observed profile and limitations in ADR 0004.
+- [x] Complete automated Phase 4 backend and frontend validation, static checks, production build, and Git tracking audit.
+
+### Phase 4 Decisions
+
+- The supported import profile is based on five observed samples and is not verified against an official specification. Only exact headers will be accepted.
+- Instruments use normalized uppercase symbols and EQ series; a changed ISIN for an existing symbol and series will stop import.
+- Prices are unadjusted and stored as integer paise; each price retains its import batch for source and file provenance.
+- Import defaults to all-or-nothing, with an optional skip-bad-rows report mode. ZIP members will be read in memory.
+- No real exchange data or sample files are copied into the repository.

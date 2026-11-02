@@ -7,11 +7,15 @@ from pathlib import Path
 
 from alembic.config import Config
 from alembic.script import ScriptDirectory
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.core.config import PROJECT_ROOT, get_settings
 from app.services.backup_service import BackupError, create_backup, restore_backup
 from app.services.integrity_service import check_ledger_integrity
+from app.services.price_import_service import PriceImportError, import_price_file
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,6 +36,44 @@ def main(argv: Sequence[str] | None = None) -> int:
             for discrepancy in integrity_result.discrepancies:
                 print(f"- {discrepancy}", file=sys.stderr)
             return 1
+
+        if arguments.command == "import-prices":
+            if not database_path.is_file():
+                raise PriceImportError(
+                    "database file does not exist; run migrations first"
+                )
+            database_engine = create_engine(f"sqlite:///{database_path}")
+
+            @event.listens_for(database_engine, "connect")
+            def enable_foreign_keys(connection: object, _: object) -> None:
+                cursor = connection.cursor()  # type: ignore[attr-defined]
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.close()
+
+            try:
+                with Session(database_engine) as session:
+                    result = import_price_file(
+                        session,
+                        arguments.file,
+                        arguments.source_label,
+                        max_uncompressed_bytes=settings.max_import_uncompressed_mb
+                        * 1024
+                        * 1024,
+                        skip_bad_rows=arguments.skip_bad_rows,
+                    )
+            finally:
+                database_engine.dispose()
+            print(f"SHA-256: {result.file_sha256}")
+            print(f"Already imported: {result.already_imported}")
+            print(
+                f"Rows: total={result.total_rows}, imported={result.imported_rows}, "
+                f"skipped={result.skipped_rows}, rejected={len(result.rejected_rows)}"
+            )
+            for series, count in sorted(result.skipped_by_series.items()):
+                print(f"Skipped series {series}: {count}")
+            for rejected in result.rejected_rows:
+                print(f"Rejected line {rejected.line}: {rejected.reason}")
+            return 0
 
         backup_directory = (
             arguments.backup_directory or settings.backup_directory
@@ -58,12 +100,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 confirm=arguments.confirm,
             )
             print(f"Database restored from: {restore_result.restored_from}")
-            print(
-                "Pre-restore safety backup: "
-                f"{restore_result.safety_backup_path}"
-            )
+            print(f"Pre-restore safety backup: {restore_result.safety_backup_path}")
             return 0
-    except BackupError as exc:
+    except (BackupError, PriceImportError, SQLAlchemyError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
@@ -84,6 +123,18 @@ def _build_parser() -> argparse.ArgumentParser:
         "integrity", help="Verify ledger reconciliation without writing"
     )
     _add_database_option(integrity_parser)
+
+    import_parser = subparsers.add_parser(
+        "import-prices", help="Import one manually downloaded local bhavcopy ZIP"
+    )
+    import_parser.add_argument("file", type=Path, help="Local ZIP file")
+    import_parser.add_argument(
+        "--source-label", required=True, help="Human-readable data source label"
+    )
+    import_parser.add_argument(
+        "--skip-bad-rows", action="store_true", help="Report and skip invalid EQ rows"
+    )
+    _add_database_option(import_parser)
 
     restore_parser = subparsers.add_parser(
         "restore", help="Restore a verified SQLite backup"

@@ -7,6 +7,7 @@ from app.db.models.ledger import (
     LotRealization,
     ProfitVaultEntry,
 )
+from app.db.models.prices import DailyPrice, ImportBatch, Instrument
 
 __all__ = [
     "CapitalMovement",
@@ -14,4 +15,7 @@ __all__ = [
     "LedgerTransaction",
     "LotRealization",
     "ProfitVaultEntry",
+    "DailyPrice",
+    "ImportBatch",
+    "Instrument",
 ]
