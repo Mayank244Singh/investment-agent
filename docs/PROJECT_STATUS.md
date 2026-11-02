@@ -32,7 +32,7 @@
 
 ## Next Task
 
-Run complete backend/frontend validation and manually verify the new ledger write endpoints end to end.
+Run the manual Phase 3 authentication, backup/restore, integrity-corruption, and Git tracking audit.
 
 ## Phase 2: Portfolio Ledger and Risk Validator
 
@@ -62,3 +62,23 @@ Run complete backend/frontend validation and manually verify the new ledger writ
 - The risk validator receives a portfolio snapshot and never queries the database.
 - Historical ledger entries bypass risk validation by design and reject only impossible withdrawals or sells; optional idempotency keys prevent duplicate events.
 - Backend development binding remains `127.0.0.1`; authentication is not yet implemented and must be documented.
+
+## Phase 3: Hardening
+
+- [x] Approve backup, authentication, negative-cash integrity, local API documentation, restore, and loopback-only development decisions.
+- [x] Add configurable SQLite online backups, retention, guarded atomic restore, and temporary-database tests.
+- [x] Require bearer-token authentication for every API route except health and add loopback/CORS safeguards.
+- [x] Add the read-only ledger integrity CLI and corruption tests.
+- [x] Add README security and restore guidance plus ADR 0003 and complete automated Phase 3 validation.
+
+### Phase 3 Decisions
+
+- Backups default to the git-ignored `backups/` directory, retain the newest 10 files, and use SQLite's online backup API.
+- Restore requires `--confirm`, validates SQLite integrity and the Alembic revision, creates a pre-restore safety backup, restores through a temporary database, and atomically swaps the file.
+- Backup and restore tests use temporary databases only; operational commands are never tested against `data/`.
+- Backups contain financial records and must be copied regularly to a private external drive rather than a public or shared cloud folder.
+- Authentication tokens require at least 32 characters, remain in the git-ignored `.env`, and must never be logged, returned, or embedded in frontend assets.
+- Authentication fails closed unless explicitly disabled on a loopback host; unauthorised responses are generic bearer challenges.
+- API documentation is available only for the exact `127.0.0.1` backend host, and CORS permits only `http://127.0.0.1:5173`.
+- The Vite development server binds to `127.0.0.1` and injects the non-`VITE_` token only in its server-side proxy.
+- Negative final cash is an integrity failure indicating a likely missing deposit; intermediate dated balances are not checked.
