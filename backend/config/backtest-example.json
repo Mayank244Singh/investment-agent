@@ -1,0 +1,23 @@
+{
+  "initial_capital_paise": 1000000,
+  "universe": ["TESTA", "TESTB", "TESTC", "TESTD", "TESTE", "TESTF", "TESTG", "TESTH", "TESTI", "TESTJ"],
+  "universe_as_of": "2026-11-02",
+  "strategy_family": "buy_and_hold",
+  "stop_below_close_percent": "5",
+  "max_previous_volume_percent": "5",
+  "corporate_action_mode": "stop",
+  "minimum_history_days": 252,
+  "annualisation_warning_days": 756,
+  "risk_limits": {
+    "max_order_percent": "10",
+    "max_stock_allocation_percent": "20",
+    "max_loss_per_trade_percent": "1",
+    "max_daily_loss_percent": "2",
+    "daily_loss_timezone": "Asia/Kolkata"
+  },
+  "momentum_lookback_days": 20,
+  "momentum_top_k": 3,
+  "momentum_rebalance_days": 20,
+  "benchmark_tranches": 1,
+  "window_size_days": null
+}

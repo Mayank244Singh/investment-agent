@@ -13,6 +13,7 @@ __pycache__/
 # Local application data
 data/
 backups/
+backtest-runs/
 *.db
 *.sqlite
 *.sqlite3

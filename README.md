@@ -164,7 +164,8 @@ backend/
   app/api/          HTTP routes
   app/core/         settings, logging, request IDs, exception handling
   app/db/           SQLAlchemy models, engine, and session lifecycle
-  app/modules/      portfolio and independent risk domain logic
+  app/modules/      portfolio, independent risk, and backtest domain logic
+  config/           example backtest config and unverified cost profile
   app/schemas/      API request and response contracts
   app/services/     API orchestration
   alembic/          reviewed schema migrations
@@ -175,6 +176,7 @@ frontend/
 docs/adr/           architecture decisions
 data/               local SQLite data (ignored by Git)
 backups/            verified local SQLite backups (ignored by Git)
+backtest-runs/       local trial records (ignored by Git)
 ```
 
 ## Known limitations
@@ -190,12 +192,31 @@ backups/            verified local SQLite backups (ignored by Git)
 - Prices are manual, EQ-only, and limited by the configurable calendar-day staleness threshold; there are no live quotes or automatic downloads.
 - Ticker changes create separate symbol histories; risk capital and risk limits still use FIFO cost, not market value.
 
+## Backtesting (Phase 5)
+
+The engine reads daily EQ prices locally and opens an explicitly supplied SQLite file read-only. It runs a separate simulated FIFO ledger in memory; it does not change holdings or prices. The two baselines are buy and hold with a configurable stop below the last close (default 5%) and N-day momentum ranking with top-K periodic rebalance. They are diagnostics, not recommendations. Buy sizes use the previous close and configured risk limits; every proposed fill is checked by the unchanged risk validator at the next open. The constrained equal-weight benchmark needs at least 10 instruments or tranches. The unconstrained equal-weight benchmark has the same costs and slippage but no risk validator; cash is also shown.
+
+Edit a copy of `backend/config/backtest-example.json` for the explicit universe, its as-of date, initial capital, risk limits, volume cap, strategy parameters and optional window size. The placeholder `backend/config/backtest-cost-placeholder-2026-11-02.json` has a broker field, dated rates and `verified: false`. It is for invented synthetic data only. Enter broker-verified rates and calculator examples before marking a profile verified; stored-price runs refuse an unverified profile. Each charge is rounded separately to paise, half up, so totals can differ from a broker by a few paise.
+
+For a synthetic run, supply a local JSON array of invented bars with `symbol`, ISO `day`, integer-paise `open_paise`, `high_paise`, `low_paise`, `close_paise`, `previous_close_paise`, and integer `volume`:
+
+```sh
+PYTHONPATH=backend .venv/bin/python -m app.cli backtest \
+  --config backend/config/backtest-example.json \
+  --cost-profile backend/config/backtest-cost-placeholder-2026-11-02.json \
+  --synthetic-bars /path/to/invented-bars.json
+```
+
+For stored prices, use a verified profile and an **explicit temporary database copy** with `--database /path/to/copy.db` instead of `--synthetic-bars`. This command does not read `.env`. Run records default to git-ignored `backtest-runs/`; `--runs-directory` can point to a private temporary folder. Each report includes the trial number, data range and number of trading days, rejected reasons, and a banner explaining historical and unadjusted-data limits; it explicitly flags unverified costs on synthetic runs. Annualised metrics are withheld below 252 trading days and warned below 756. The source universe can have survivorship bias, corporate actions are not adjusted, and there is no index benchmark because index data is not stored.
+
+See [ADR 0005](docs/adr/0005-backtesting.md) for event order, stop assumptions, costs, benchmark definitions and limitations.
+
 ## Planned extension points
 
 - Corporate-action adjustments and explicit ticker-history mapping after approval
 - Additional portfolio and performance reporting
 - Independent risk validation before every paper or broker order
-- Research, fundamentals, ranking, rotation, backtesting, and paper trading
+- Research, fundamentals, ranking, rotation, advanced evaluation, and paper trading
 - Broker integration only after explicit approval and regulatory review
 
 See [ADR 0001](docs/adr/0001-architecture.md) for the original layering decision, [ADR 0002](docs/adr/0002-portfolio-ledger-and-risk.md) for FIFO accounting and fail-closed risk validation, [ADR 0003](docs/adr/0003-hardening.md) for local security and backup decisions, and [ADR 0004](docs/adr/0004-price-data.md) for the observed price profile and its limits.

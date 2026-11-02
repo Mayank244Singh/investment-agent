@@ -1,6 +1,7 @@
 """Local operational commands for SQLite backup and guarded restore."""
 
 import argparse
+import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -13,6 +14,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.config import PROJECT_ROOT, get_settings
+from app.modules.backtest.costs import CostProfile
+from app.modules.backtest.data import load_stored_prices
+from app.modules.backtest.run import (
+    load_run_settings,
+    load_synthetic_bars,
+    save_run,
+)
 from app.services.backup_service import BackupError, create_backup, restore_backup
 from app.services.integrity_service import check_ledger_integrity
 from app.services.price_import_service import PriceImportError, import_price_file
@@ -24,6 +32,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Run one backup or restore command and return a process exit code."""
     parser = _build_parser()
     arguments = parser.parse_args(argv)
+    if arguments.command == "backtest":
+        return _run_backtest(arguments)
     try:
         settings = get_settings()
         database_path = _database_path(arguments.database, settings.database_url)
@@ -146,7 +156,113 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Confirm replacement of the current database",
     )
     _add_common_options(restore_parser)
+
+    backtest_parser = subparsers.add_parser(
+        "backtest", help="Run a local, daily-bar historical simulation"
+    )
+    backtest_parser.add_argument("--config", type=Path, required=True)
+    backtest_parser.add_argument("--cost-profile", type=Path, required=True)
+    source = backtest_parser.add_mutually_exclusive_group(required=True)
+    source.add_argument(
+        "--database",
+        type=Path,
+        help="Explicit stored-price SQLite file, opened read-only",
+    )
+    source.add_argument(
+        "--synthetic-bars", type=Path, help="Local JSON of invented bars for tests"
+    )
+    backtest_parser.add_argument(
+        "--runs-directory", type=Path, default=PROJECT_ROOT / "backtest-runs"
+    )
     return parser
+
+
+def _run_backtest(arguments: argparse.Namespace) -> int:
+    """A separate branch avoids loading application settings or the user's .env."""
+    try:
+        settings = load_run_settings(arguments.config)
+        profile = CostProfile.from_json(arguments.cost_profile)
+        if arguments.database is not None:
+            if not profile.verified:
+                raise ValueError("stored prices require a verified broker cost profile")
+            data = load_stored_prices(arguments.database, settings.simulation.universe)
+        else:
+            data = load_synthetic_bars(arguments.synthetic_bars)
+        outcome = save_run(
+            data, profile, settings, arguments.runs_directory, PROJECT_ROOT
+        )
+    except (
+        ValueError,
+        FileNotFoundError,
+        KeyError,
+        TypeError,
+        json.JSONDecodeError,
+        SQLAlchemyError,
+    ) as exc:
+        print(f"Backtest error: {exc}", file=sys.stderr)
+        return 1
+    print(outcome.banner)
+    print(f"Strategy: {outcome.strategy_family}; trial #{outcome.trial_number}")
+    for index, window in enumerate(outcome.windows, 1):
+        result = window.report.metrics
+        print(
+            f"Trial #{outcome.trial_number}, window {index}: "
+            f"{window.start} to {window.end}; "
+            f"{result.trading_days} trading days; "
+            f"gross {result.gross_return_percent:.2f}%; "
+            f"net {result.net_return_percent:.2f}%"
+        )
+        print(
+            f"  Final net equity {result.final_net_equity_paise} paise; "
+            f"charges {result.total_costs_paise} paise; "
+            f"slippage impact {result.slippage_impact_paise} paise; "
+            f"cost drag {result.cost_drag_paise} paise"
+        )
+        print(
+            f"  Max drawdown {result.max_drawdown_percent:.2f}%; "
+            f"daily volatility {result.daily_volatility_percent:.2f}%; "
+            f"mean exposure {result.mean_exposure_percent:.2f}%"
+        )
+        annual_return = (
+            f"{result.annualized_return_percent:.2f}%"
+            if result.annualized_return_percent is not None
+            else "unavailable"
+        )
+        annual_volatility = (
+            f"{result.annualized_volatility_percent:.2f}%"
+            if result.annualized_volatility_percent is not None
+            else "unavailable"
+        )
+        print(
+            f"  Annualised return {annual_return}; "
+            f"annualised volatility {annual_volatility}"
+        )
+        print(
+            f"  Trades {result.trade_count}; turnover {result.turnover_paise} paise "
+            f"({result.turnover_percent:.2f}%); "
+            f"rejected {result.rejected_trade_count}; "
+            f"volume-cap reduced {result.reduced_quantity}, "
+            f"unfilled {result.unfilled_quantity}; "
+            f"Profit Vault {result.profit_vault_paise} paise"
+        )
+        if result.rejection_reasons:
+            print(
+                "  Rejection reasons: "
+                + ", ".join(
+                    f"{reason}={count}" for reason, count in result.rejection_reasons
+                )
+            )
+        for benchmark in window.report.benchmarks:
+            print(
+                f"  Trial #{outcome.trial_number}, {benchmark.label}: "
+                f"gross {benchmark.metrics.gross_return_percent:.2f}%; "
+                f"net {benchmark.metrics.net_return_percent:.2f}%; "
+                f"charges {benchmark.metrics.total_costs_paise} paise"
+            )
+        for warning in window.report.warnings:
+            print(f"  Warning: {warning}")
+    print(f"Run record: {outcome.record_path}")
+    return 0
 
 
 def _add_common_options(parser: argparse.ArgumentParser) -> None:

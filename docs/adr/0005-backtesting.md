@@ -1,0 +1,26 @@
+# ADR 0005: Daily-bar backtesting
+
+## Status
+
+Accepted for Phase 5. Historical simulations are research diagnostics, not recommendations.
+
+## Design
+
+- Stored EQ bars are loaded from an explicitly named SQLite file using `mode=ro` and `query_only=ON`; the source database is never used as the simulated ledger. Synthetic bars are allowed for tests. Each run creates a private in-memory SQLite ledger and calls the existing FIFO ledger service, including its fee allocation and Profit Vault behavior.
+- A strategy gets only a copied history view through the decision date. The loop checks corporate-action and missing-bar guards, executes prior-close intents at the next open, evaluates stops using that day's low, marks the close, and then calls the strategy. A future-date query raises. A deliberate temporary future-bar leak made the look-ahead test fail; restoring the guard made it pass.
+- The two baseline strategies are buy and hold and N-day close-to-close momentum ranking with top-K and periodic rebalancing. They size buys using the last completed close, available cash, the configured maximum order and stock allocation, and stop exposure. The fill-time risk validator uses the actual next open, simulated Asia/Kolkata date, and actual charges. Gaps, charges, or a reached daily-loss limit can still reject a proposed buy. Sells, including stop-outs, use the unchanged validator's held-quantity rule and are not blocked by buy-side loss limits.
+- A stop is assumed hit whenever the daily low touches it. Fill at the stop, or the open if the market gaps below it. This is conservative but cannot model intraday path, liquidity, or queue priority. The previous completed bar's volume limits every order, including stops; reduced and unfilled quantities are reported.
+- Delivery charge rates are decimal strings in a dated broker-named JSON profile. Each brokerage, STT, exchange, regulator, stamp, GST, and depository charge is rounded separately to the nearest paisa, half up. GST applies to brokerage, exchange and regulator charges, not STT or stamp duty. Adverse slippage is applied to the fill price. This can differ from a broker calculator by a few paise. The placeholder profile has `verified: false`; runs on stored prices refuse it. The broker golden-example test stays pending until real dated rates and a buy/sell calculator breakdown are supplied; it accepts external paths through `BACKTEST_VERIFIED_PROFILE` and `BACKTEST_BROKER_GOLDEN`.
+- Previous close is compared with the prior stored close. A mismatch stops by default; exclusion begins on the flagged date when configured, but any flagged held instrument stops regardless. A missing held bar prevents a trade and leaves a stale last-close mark. These checks do not adjust prices for splits, bonuses or dividends.
+- The constrained equal-weight benchmark uses the same validator, charges and slippage. It requires at least 10 instruments or configured tranches and can remain partly in cash under risk limits. The unconstrained equal-weight benchmark uses the same costs and slippage but deliberately omits the validator; it still cannot spend beyond cash or sell beyond holdings. Cash is a third benchmark. No index benchmark is available because index data is not stored.
+- Metrics use integer paise for money. Gross ending equity is net ending equity plus explicit charges and adverse slippage impact, an attribution estimate rather than a separate cost-free replay. Returns, drawdown, exposure and volatility are ratios. Annualised figures are absent below 252 evaluation days (or a higher configured minimum), with a warning below 756. Every report includes trading-day count, dates, trial number, and a warning banner. The banner explicitly says when the cost profile is unverified, including in each window and saved run record.
+- Consecutive out-of-sample windows use fresh portfolios and strategy state; historical warmup bars may inform the first decision, but only evaluation-window dates contribute to metrics. Each successful run increments a local trial counter per strategy family and writes JSON with hashes, coverage, universe date, cost profile, revision, fills, rejections, metrics, benchmarks and windows to the git-ignored `backtest-runs/` directory.
+
+## Known limitations
+
+- Daily bars cannot establish the order of intraday events. The stop assumption may overstate or understate an actual fill.
+- Corporate actions are flagged, not modeled. Unadjusted prices must not be used for returns across splits, bonuses, or dividends until adjusted data and action handling exist; some actions may evade the previous-close check.
+- The universe can have survivorship bias if selected from today's constituents. Delisted and renamed symbols may be missing; ticker changes split history.
+- There is no index benchmark, live data, broker integration, prediction, or order execution.
+- The cost profile is unverified until the user supplies broker rates and calculator examples. Results may differ by paise even then.
+- Strategy sizing uses the last close; gaps and charges can cause fill-time rejections. The constrained benchmark may hold cash because of risk or volume caps. Gross return is an attribution estimate, not a fully independent cost-free strategy.

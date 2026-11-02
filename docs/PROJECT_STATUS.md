@@ -34,7 +34,7 @@
 
 ## Next Task
 
-Run a user-reviewed manual dashboard check against a temporary imported database, then seek approval before any next milestone or real-data migration.
+Phase 5 Part B is implemented. Next: supply a dated delivery buy/sell charge breakdown and real broker rates, verify the golden example, then review a stored-price run on a temporary database copy before any real-data use.
 
 ## Phase 2: Portfolio Ledger and Risk Validator
 
@@ -103,3 +103,26 @@ Run a user-reviewed manual dashboard check against a temporary imported database
 - Prices are unadjusted and stored as integer paise; each price retains its import batch for source and file provenance.
 - Import defaults to all-or-nothing, with an optional skip-bad-rows report mode. ZIP members will be read in memory.
 - No real exchange data or sample files are copied into the repository.
+
+## Phase 5: Backtesting engine
+
+- [x] Part A: add read-only SQLite price loading, bounded historical views, and a private in-memory FIFO ledger using the existing ledger service.
+- [x] Part A: add a dated, broker-named unverified placeholder delivery-cost profile, per-charge half-up paise rounding, adverse slippage, and a guard against using unverified costs with stored prices.
+- [x] Part A: add the daily event loop with next-open fills, unchanged risk validation, simulated India dates, volume reductions, stop and gap handling, corporate-action guards, and stale held-bar flags.
+- [x] Part A: test look-ahead prevention, fills, costs, slippage, stops, risk, FIFO, data guards, and unchanged source-database hash; run backend tests, Ruff and mypy.
+- [ ] Verify a broker calculator delivery buy/sell golden example after receiving real charge breakdown and rates; the test is pending while the profile remains unverified.
+- [x] Audit named Part A tests; no gaps found. Temporarily leak a future bar, observe the no-look-ahead test fail, restore the guard, and observe it pass.
+- [x] Add buy-and-hold and N-day momentum baselines, sizing against configured risk limits at the last close and validating actual next-open fills.
+- [x] Add labelled constrained, unconstrained and cash benchmarks, metrics, consecutive out-of-sample windows, and a trial-numbered JSON run record in git-ignored `backtest-runs/`.
+- [x] Add a local `backtest` CLI, README instructions, ADR 0005, synthetic tests, and final static checks.
+
+### Phase 5 Decisions and limitations
+
+- The universe, its as-of date, initial capital, volume cap, stop percentage and history thresholds are simulation config values. Annualised results will require at least 252 trading days and warn below 756.
+- Stops and strategy sells pass through the unchanged risk validator. It checks held quantity on sells and does not apply buy or daily-loss limits.
+- The volume cap uses the last completed bar's volume, including on protective sells; unfilled quantity remains open and is reported. A missing held bar prevents execution and marks the last close stale.
+- Suspected corporate actions compare stored previous close with the prior stored close. A held flagged instrument always stops the run; an unheld one can be excluded from its flagged date.
+- The cost profile contains synthetic zero placeholders, not verified broker rates. GST is computed on brokerage, exchange and regulator charges only. Component-level half-up rounding can differ from a broker by a few paise.
+- The constrained equal-weight benchmark requires at least 10 instruments or tranches; the unconstrained version bypasses only the risk validator, while retaining cost, slippage, cash and holdings constraints. There is no index benchmark because index data is not stored.
+- Every report states the data range, trading-day count, trial number and historical-results warning. Gross return is net plus charges and adverse slippage impact, an attribution estimate rather than a separate cost-free replay.
+- Reports and run records explicitly flag an unverified cost profile; the placeholder remains `verified: false`, and the broker golden-example test remains pending until actual dated rates and calculator breakdowns are supplied.
