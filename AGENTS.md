@@ -14,7 +14,8 @@ Read docs/PROJECT_BRIEF.md at the start of every session.
   future execution. Manual append-only ledger entries record completed events
   and do not pass through the risk validator. No AI or forecasting component
   may bypass the execution risk gate.
-Current milestone: Phase 7B.2A synthetic ML runtime verification is complete.
-Read docs/PROJECT_STATUS.md and docs/PHASE_7B_2A_RUNTIME_VERIFICATION.md.
-Next planned phase: Phase 7B.2B real-data readiness; wait for approval before starting it.
+Current milestone: Phase 7B.2B real-data readiness assessment is implemented.
+Read docs/PROJECT_STATUS.md and docs/PHASE_7B_2B_REAL_DATA_READINESS.md.
+Resolve historical data rights, access and quality gaps before proposing real-data
+training; wait for approval before Phase 7C or any subsequent phase.
 - Never run git commit or git push. The user does that.

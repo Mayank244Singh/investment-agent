@@ -1,5 +1,15 @@
 # Project Status
 
+## Phase 7B.2B: Real historical-data readiness assessment (implemented)
+
+- [x] Add a provider-neutral, read-only assessment for 1/5/15-minute intraday and daily swing/long-term data, with explicit calendar/holiday/halt evidence and per-symbol coverage.
+- [x] Report all applicable coverage, quality, corporate-action, point-in-time, licensing and provider-access blockers; leave real-data ML training disabled.
+- [x] Add a `data-readiness` CLI that opens a selected SQLite database read-only; use only isolated synthetic databases in tests.
+- [x] Test missing bars, duplicates, OHLCV/timestamp errors, identity, mixed providers, fail-closed results and source-database immutability.
+- [x] Verify the full backend suite (393 passed, 1 skipped), Ruff and mypy (107 source files) after the readiness additions.
+
+This phase implements assessment infrastructure, **not** a usable real-data training dataset. Stored NSE observations are daily, unadjusted and lack verified availability, corporate-action, historical-universe and licensing evidence. No production intraday table or point-in-time fundamental source exists. Upstox historical and LTP access remains blocked by HTTP 403. See `docs/PHASE_7B_2B_REAL_DATA_READINESS.md`.
+
 ## Phase 7B.2A: Multi-model runtime verification (complete)
 
 - [x] Inspect the existing Phase 7B.1 path and confirm native macOS arm64 / Python 3.12.16.
@@ -75,7 +85,7 @@ At the end of Phase 7A, no intraday provider, corporate-action adjustment, execu
 
 ## Next Task
 
-Wait for review and approval before starting Phase 7B.2B or any later phase. Upstox's repeated HTTP 403, historical-data retention and ML-training rights, longer adjusted daily and intraday histories, and an authoritative session calendar remain unresolved for real-data ML work. The Phase 6 usability browser check, reversal-event design and Phase 5 broker-cost golden example remain pending.
+Review the Phase 7B.2B assessment and resolve provider access, historical-data retention and ML-training rights, longer adjusted daily and intraday histories, corporate actions, point-in-time identity/universe and an authoritative session calendar before proposing real-data training. Do not start Phase 7C without approval. The Phase 6 usability browser check, reversal-event design and Phase 5 broker-cost golden example remain pending.
 
 ## Phase 2: Portfolio Ledger and Risk Validator
 

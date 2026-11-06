@@ -8,6 +8,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from alembic.config import Config
 from alembic.script import ScriptDirectory
@@ -27,6 +28,7 @@ from app.modules.backtest.run import (
     save_run,
 )
 from app.modules.research import ml_cli
+from app.modules.research.contracts import StrategyFamily, Timeframe
 from app.modules.research.core import build_dataset
 from app.modules.research.intraday import (
     build_intraday_dataset,
@@ -34,8 +36,11 @@ from app.modules.research.intraday import (
 )
 from app.modules.research.intraday_io import load_synthetic_intraday
 from app.modules.research.io import load_synthetic_research
+from app.modules.research.readiness import ReadinessPolicy
+from app.modules.research.readiness_io import load_calendar_evidence
 from app.modules.research.splits import chronological_split
 from app.services.backup_service import BackupError, create_backup, restore_backup
+from app.services.data_readiness_service import ReadinessError, assess_stored_readiness
 from app.services.integrity_service import check_ledger_integrity
 from app.services.price_import_service import PriceImportError, import_price_file
 from app.services.upstox_historical_provider import (
@@ -60,9 +65,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
 class _AnalyticsSettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=PROJECT_ROOT / ".env", extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=PROJECT_ROOT / ".env", extra="ignore")
     upstox_analytics_token: SecretStr | None = None
 
 
@@ -79,6 +82,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _run_backtest(arguments)
     if arguments.command == "pilot-upstox":
         return _run_upstox_pilot(arguments)
+    if arguments.command == "data-readiness":
+        return _run_data_readiness(arguments)
     if arguments.command == "research-validate":
         return _run_research_validate(arguments)
     if arguments.command == "research-intraday-validate":
@@ -234,10 +239,31 @@ def _build_parser() -> argparse.ArgumentParser:
     pilot_parser.add_argument("--database", type=Path, required=True)
     pilot_parser.add_argument("--mock-file", type=Path)
     pilot_parser.add_argument(
-        "--symbols", nargs=5, default=PILOT_SYMBOLS, metavar="SYMBOL",
+        "--symbols",
+        nargs=5,
+        default=PILOT_SYMBOLS,
+        metavar="SYMBOL",
         help="Exactly five EQ symbols; defaults to the five-stock pilot",
     )
     pilot_parser.add_argument("--allow-live", action="store_true")
+    readiness_parser = subparsers.add_parser(
+        "data-readiness", help="Read-only historical data eligibility report"
+    )
+    readiness_parser.add_argument("--database", type=Path, required=True)
+    readiness_parser.add_argument(
+        "--strategy",
+        choices=tuple(item.value for item in StrategyFamily),
+        required=True,
+    )
+    readiness_parser.add_argument(
+        "--timeframe",
+        choices=tuple(item.value for item in Timeframe),
+        required=True,
+    )
+    readiness_parser.add_argument("--calendar-json", type=Path)
+    readiness_parser.add_argument("--min-sessions", type=int)
+    readiness_parser.add_argument("--symbols", nargs="*", default=[])
+    readiness_parser.add_argument("--provider")
     research_parser = subparsers.add_parser(
         "research-validate", help="Validate a synthetic point-in-time research dataset"
     )
@@ -287,8 +313,10 @@ def _run_research_validate(arguments: argparse.Namespace) -> int:
             raise ValueError("both chronological split boundaries are required")
         if arguments.train_end is not None:
             split = chronological_split(
-                dataset.samples, config.sessions,
-                arguments.train_end, arguments.validation_end,
+                dataset.samples,
+                config.sessions,
+                arguments.train_end,
+                arguments.validation_end,
                 embargo_sessions=arguments.embargo_sessions,
             )
             print(
@@ -328,13 +356,12 @@ def _run_research_intraday_validate(arguments: argparse.Namespace) -> int:
             f"missing targets={report.missing_targets}"
         )
         print(f"Reasons: {json.dumps(report.rejection_reasons, sort_keys=True)}")
-        if (arguments.train_end_utc is None) != (
-            arguments.validation_end_utc is None
-        ):
+        if (arguments.train_end_utc is None) != (arguments.validation_end_utc is None):
             raise ValueError("both chronological split boundaries are required")
         if arguments.train_end_utc is not None:
             split = chronological_intraday_split(
-                dataset.samples, arguments.train_end_utc,
+                dataset.samples,
+                arguments.train_end_utc,
                 arguments.validation_end_utc,
                 embargo=timedelta(minutes=arguments.embargo_minutes),
             )
@@ -342,10 +369,16 @@ def _run_research_intraday_validate(arguments: argparse.Namespace) -> int:
                 f"Split: train={len(split.train)}, validation={len(split.validation)}, "
                 f"test={len(split.test)}, excluded={len(split.excluded)}"
             )
-        return 0 if report.accepted and not (
-            report.duplicate_timestamps or report.out_of_order_observations
-            or report.missing_expected_bars
-        ) else 1
+        return (
+            0
+            if report.accepted
+            and not (
+                report.duplicate_timestamps
+                or report.out_of_order_observations
+                or report.missing_expected_bars
+            )
+            else 1
+        )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"Intraday research validation error: {exc}", file=sys.stderr)
         return 1
@@ -453,7 +486,8 @@ class _NoNetworkTransport:
 
 
 def _load_mock_fixture(
-    path: Path, symbols: tuple[str, ...],
+    path: Path,
+    symbols: tuple[str, ...],
 ) -> tuple[dict[str, dict[str, object]], dict[str, bytes]]:
     """Accept only the five explicit, labelled mock identities and responses."""
     if not path.is_file() or path.stat().st_size > 2_000_000:
@@ -552,13 +586,16 @@ def _run_upstox_pilot(arguments: argparse.Namespace) -> int:
                         time.sleep(1.1)
                     request_count += 1
                     batch = provider.fetch_daily(
-                        instrument_key or "", reference.from_date,
+                        instrument_key or "",
+                        reference.from_date,
                         reference.to_date,
                     )
                 else:
                     batch = provider.parse_response(
-                        responses[symbol], instrument_key or "",
-                        reference.from_date, reference.to_date,
+                        responses[symbol],
+                        instrument_key or "",
+                        reference.from_date,
+                        reference.to_date,
                         retrieved_at_utc=datetime.now(UTC),
                         source_ref=f"offline-mock:{symbol}",
                     )
@@ -589,8 +626,7 @@ def _run_upstox_pilot(arguments: argparse.Namespace) -> int:
             print(f"LIVE UPSTOX PILOT — historical GET requests={request_count}")
         else:
             print(
-                "OFFLINE MOCK PILOT — synthetic provider responses; "
-                "no Upstox request"
+                "OFFLINE MOCK PILOT — synthetic provider responses; no Upstox request"
             )
         print(
             f"NSE reference: {len(reference.instruments)} EQ instruments, "
@@ -650,6 +686,46 @@ def _run_upstox_pilot(arguments: argparse.Namespace) -> int:
             print(f"Historical GET attempts: {request_count}", file=sys.stderr)
         print(f"Upstox pilot error: {exc}", file=sys.stderr)
         return 1
+
+
+def _run_data_readiness(arguments: argparse.Namespace) -> int:
+    """Report stored evidence without reading credentials or writing SQLite."""
+    try:
+        strategy = StrategyFamily(arguments.strategy)
+        timeframe = Timeframe(arguments.timeframe)
+        minimum = arguments.min_sessions
+        if minimum is None:
+            minimum = 756 if strategy is StrategyFamily.LONG_TERM else 504
+        calendar = (
+            load_calendar_evidence(arguments.calendar_json)
+            if arguments.calendar_json is not None
+            else None
+        )
+        policy = ReadinessPolicy(
+            strategy,
+            timeframe,
+            minimum,
+            calendar,
+            provider_access_blocked=arguments.provider == "upstox",
+            as_of_date=datetime.now(ZoneInfo("Asia/Kolkata")).date(),
+        )
+        report = assess_stored_readiness(
+            arguments.database,
+            policy,
+            symbols=tuple(arguments.symbols),
+            provider=arguments.provider,
+        )
+        print(json.dumps(report.as_dict(), indent=2))
+        return 0 if report.eligible else 1
+    except (
+        ReadinessError,
+        ValueError,
+        TypeError,
+        OSError,
+        json.JSONDecodeError,
+    ) as exc:
+        print(f"Readiness error: {exc}", file=sys.stderr)
+        return 2
 
 
 def _add_common_options(parser: argparse.ArgumentParser) -> None:
