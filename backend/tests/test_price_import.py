@@ -16,7 +16,13 @@ from sqlalchemy.orm import Session
 from app.cli import main
 from app.core.config import Settings, get_settings
 from app.db.base import Base
-from app.db.models.prices import DailyPrice, ImportBatch, Instrument
+from app.db.models.prices import (
+    DailyPrice,
+    ImportBatch,
+    IngestionRun,
+    Instrument,
+    SourceObservation,
+)
 from app.services.price_import_service import (
     HEADERS,
     ImportResult,
@@ -129,9 +135,22 @@ def test_valid_import_stores_paise_provenance_and_normalized_symbol(
         batch = session.scalar(select(ImportBatch))
         assert instrument is not None and instrument.symbol == "TESTA"
         assert price is not None and price.close_paise == 10_500
+        assert price.previous_close_paise == 9_900
         assert price.price_basis == "unadjusted"
         assert batch is not None and batch.file_name == FILE_NAME
         assert batch.source_label == "synthetic test source"
+        source = session.scalar(select(SourceObservation))
+        run = session.scalar(select(IngestionRun))
+        assert source is not None and run is not None
+        assert source.previous_close_paise == 9_900
+        assert source.origin == "source"
+        assert source.raw_payload_json is not None
+        assert source.event_at_utc is None
+        assert source.retrieved_at_utc is None
+        assert source.available_at_utc is None
+        assert price.source_observation_id == source.id
+        assert source.ingestion_run_id == run.id
+        assert run.import_batch_id == batch.id
 
 
 def test_bom_is_accepted(engine: Engine, tmp_path: Path) -> None:
@@ -283,6 +302,8 @@ def test_same_file_hash_is_a_no_op(engine: Engine, tmp_path: Path) -> None:
     assert second.already_imported
     assert second.imported_rows == 0
     assert _counts(engine) == (1, 1, 1)
+    with Session(engine) as session:
+        assert session.scalar(select(func.count()).select_from(SourceObservation)) == 1
 
 
 def test_same_price_from_a_different_file_is_skipped(
@@ -295,6 +316,19 @@ def test_same_price_from_a_different_file_is_skipped(
     assert result.imported_rows == 1
     assert result.unchanged_rows == 1
     assert _counts(engine) == (2, 2, 2)
+    with Session(engine) as session:
+        sources = list(
+            session.scalars(
+                select(SourceObservation)
+                .where(SourceObservation.symbol == "TESTA")
+                .order_by(SourceObservation.id)
+            )
+        )
+        assert len(sources) == 2
+        assert sources[0].ingestion_run_id != sources[1].ingestion_run_id
+        assert sources[0].close_paise == sources[1].close_paise == 10_500
+        assert sources[0].reconciliation == "selected"
+        assert sources[1].reconciliation == "agreement"
 
 
 def test_conflicting_price_rolls_back(engine: Engine, tmp_path: Path) -> None:
@@ -304,6 +338,8 @@ def test_conflicting_price_rolls_back(engine: Engine, tmp_path: Path) -> None:
     with pytest.raises(PriceImportError, match="price conflict"):
         _import(engine, path)
     assert _counts(engine) == (1, 1, 1)
+    with Session(engine) as session:
+        assert session.scalar(select(func.count()).select_from(SourceObservation)) == 1
 
 
 def test_changed_isin_rolls_back(engine: Engine, tmp_path: Path) -> None:
@@ -313,6 +349,8 @@ def test_changed_isin_rolls_back(engine: Engine, tmp_path: Path) -> None:
     with pytest.raises(PriceImportError, match="ISIN conflict"):
         _import(engine, path)
     assert _counts(engine) == (1, 1, 1)
+    with Session(engine) as session:
+        assert session.scalar(select(func.count()).select_from(SourceObservation)) == 1
 
 
 def test_mid_import_database_failure_rolls_back_all_rows(
@@ -342,6 +380,9 @@ def test_mid_import_database_failure_rolls_back_all_rows(
     finally:
         event.remove(engine, "before_cursor_execute", fail_second_price)
     assert _counts(engine) == (0, 0, 0)
+    with Session(engine) as session:
+        assert session.scalar(select(func.count()).select_from(SourceObservation)) == 0
+        assert session.scalar(select(func.count()).select_from(IngestionRun)) == 0
 
 
 def test_import_never_opens_a_network_socket(

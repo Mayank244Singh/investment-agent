@@ -5,9 +5,12 @@ import App from "./App";
 import {
   getHealth,
   getLedger,
+  getLatestEqClose,
   getPortfolioValuation,
   getPriceCoverage,
+  getRealizedPnl,
   getRiskRules,
+  postLedgerEntry,
   type LedgerResponse,
   type PortfolioValuationResponse,
   type PriceCoverageResponse,
@@ -17,9 +20,12 @@ import {
 vi.mock("./api/client", () => ({
   getHealth: vi.fn(),
   getLedger: vi.fn(),
+  getLatestEqClose: vi.fn(),
   getPortfolioValuation: vi.fn(),
   getPriceCoverage: vi.fn(),
+  getRealizedPnl: vi.fn(),
   getRiskRules: vi.fn(),
+  postLedgerEntry: vi.fn(),
 }));
 
 const mockedGetHealth = vi.mocked(getHealth);
@@ -27,6 +33,9 @@ const mockedGetLedger = vi.mocked(getLedger);
 const mockedGetPortfolioValuation = vi.mocked(getPortfolioValuation);
 const mockedGetPriceCoverage = vi.mocked(getPriceCoverage);
 const mockedGetRiskRules = vi.mocked(getRiskRules);
+const mockedGetRealizedPnl = vi.mocked(getRealizedPnl);
+const mockedGetLatestEqClose = vi.mocked(getLatestEqClose);
+const mockedPostLedgerEntry = vi.mocked(postLedgerEntry);
 
 const emptyLedger: LedgerResponse = {
   summary: {
@@ -132,8 +141,16 @@ describe("App", () => {
     mockedGetPortfolioValuation.mockReset();
     mockedGetPriceCoverage.mockReset();
     mockedGetRiskRules.mockReset();
+    mockedGetRealizedPnl.mockReset();
+    mockedGetLatestEqClose.mockReset();
+    mockedPostLedgerEntry.mockReset();
+    localStorage.clear();
     mockedGetPortfolioValuation.mockResolvedValue(emptyValuation);
     mockedGetPriceCoverage.mockResolvedValue(emptyCoverage);
+    mockedGetRealizedPnl.mockResolvedValue({
+      from_date: null, to_date: null, financial_year: null,
+      symbols: [], matches: [], total_realized_pnl_paise: 0,
+    });
   });
 
   it("renders all seven sections and loading states", () => {
@@ -173,7 +190,8 @@ describe("App", () => {
       expect(screen.getByText("Backend: Connected")).toBeInTheDocument();
     });
     expect(screen.getAllByText("No data")).toHaveLength(4);
-    expect(document.body.textContent).not.toMatch(/₹|\b\d+(?:\.\d+)?%/);
+    expect(document.querySelectorAll("dd")).toHaveLength(0);
+    expect(screen.queryAllByTestId("price-figure")).toHaveLength(0);
   });
 
   it("shows populated portfolio totals and configured risk rules", async () => {

@@ -132,6 +132,35 @@ def _price(
         session.commit()
 
 
+def test_latest_eq_close_is_dated_normalized_and_requires_auth(api: ApiContext) -> None:
+    route = "/api/v1/prices/latest"
+    assert api.client.get(route, params={"symbol": "TESTA"}).status_code == 401
+    assert _get(api, route + "?symbol=unknown") == {
+        "symbol": "UNKNOWN",
+        "status": "no_eq_price",
+        "price_date": None,
+        "close_paise": None,
+        "source_label": None,
+        "file_name": None,
+        "staleness_limit_days": 5,
+    }
+    _price(api, "TESTA", TRADE_DATE, 12_000)
+    _price(api, "TESTA", TRADE_DATE + timedelta(days=1), 11_000)
+    result = _get(api, route + "?symbol=%20testa%20")
+    assert result["symbol"] == "TESTA"
+    assert result["status"] == "available"
+    assert result["price_date"] == "2026-10-31"
+    assert result["close_paise"] == 11_000
+    assert result["source_label"] == "synthetic test source"
+    assert result["staleness_limit_days"] == 5
+    invalid = api.client.get(
+        route,
+        params={"symbol": "bad symbol"},
+        headers={"Authorization": f"Bearer {TOKEN}"},
+    )
+    assert invalid.status_code == 422
+
+
 def test_priced_holding_uses_latest_close_and_open_fifo_cost(api: ApiContext) -> None:
     _holding(api, "TESTA")
     _price(api, "TESTA", TRADE_DATE)

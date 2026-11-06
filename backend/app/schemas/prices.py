@@ -73,3 +73,15 @@ class PriceCoverageResponse(BaseModel):
 
     symbols: list[SymbolPriceCoverageResponse]
     import_batches: list[ImportBatchCoverageResponse]
+
+
+class LatestEqCloseResponse(BaseModel):
+    """Latest stored EQ close for a manual-entry reference warning."""
+
+    symbol: str
+    status: Literal["available", "no_eq_price"]
+    price_date: date | None
+    close_paise: int | None
+    source_label: str | None
+    file_name: str | None
+    staleness_limit_days: int

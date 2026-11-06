@@ -1,8 +1,9 @@
 """Portfolio ledger API request and response schemas."""
 
 import re
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from pydantic import AwareDatetime, BaseModel, Field, field_validator
 
@@ -11,9 +12,12 @@ NonnegativePaise = Annotated[int, Field(strict=True, ge=0)]
 PositiveQuantity = Annotated[int, Field(strict=True, gt=0)]
 
 
+MARKET_TIMEZONE = ZoneInfo("Asia/Kolkata")
+
+
 def _reject_future_timestamp(value: datetime) -> datetime:
-    if value.astimezone(UTC) > datetime.now(UTC):
-        raise ValueError("ledger event date cannot be in the future")
+    if value.astimezone(MARKET_TIMEZONE).date() > datetime.now(MARKET_TIMEZONE).date():
+        raise ValueError("ledger event date cannot be in the future in Asia/Kolkata")
     return value
 
 
@@ -46,9 +50,7 @@ class TradeCreate(BaseModel):
             raise ValueError("symbol contains unsupported characters")
         return normalized
 
-    _validate_date = field_validator("transacted_at_utc")(
-        _reject_future_timestamp
-    )
+    _validate_date = field_validator("transacted_at_utc")(_reject_future_timestamp)
 
 
 class LedgerSummaryResponse(BaseModel):

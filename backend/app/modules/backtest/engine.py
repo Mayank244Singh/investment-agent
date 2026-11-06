@@ -188,6 +188,13 @@ def simulate(
         )
     if data.origin == "stored" and profile.slippage_bps <= 0:
         raise ValueError("stored-price backtests require positive slippage")
+    if data.origin == "stored" and any(
+        bar.previous_close_paise is None for bar in data.ordered_bars()
+    ):
+        raise ValueError(
+            "stored-price backtests require source previous close until "
+            "corporate-action quality is independently verified"
+        )
     if not data.days:
         raise ValueError("no bars in configured universe")
     engine = create_engine("sqlite+pysqlite:///:memory:")
@@ -329,7 +336,11 @@ def simulate(
                         )
                     continue
                 prior = previous.get(symbol)
-                if prior is not None and bar.previous_close_paise != prior.close_paise:
+                if (
+                    prior is not None
+                    and bar.previous_close_paise is not None
+                    and bar.previous_close_paise != prior.close_paise
+                ):
                     message = f"{day}: suspected corporate action for {symbol}"
                     if symbol in held or config.corporate_action_mode == "stop":
                         raise ValueError(message)

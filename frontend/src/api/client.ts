@@ -109,6 +109,61 @@ export type PriceCoverageResponse = {
   }[];
 };
 
+export type LatestEqCloseResponse = {
+  symbol: string;
+  status: "available" | "no_eq_price";
+  price_date: string | null;
+  close_paise: number | null;
+  source_label: string | null;
+  file_name: string | null;
+  staleness_limit_days: number;
+};
+
+export type RealizedMatch = {
+  sell_transaction_id: number;
+  buy_transaction_id: number;
+  holding_lot_id: number;
+  symbol: string;
+  quantity: number;
+  acquired_at_utc: string;
+  realized_at_utc: string;
+  holding_period_days: number;
+  cost_basis_paise: number;
+  gross_proceeds_paise: number;
+  sell_fees_paise: number;
+  net_proceeds_paise: number;
+  realized_pnl_paise: number;
+};
+
+export type SymbolRealizedPnl = {
+  symbol: string;
+  quantity_sold: number;
+  cost_basis_paise: number;
+  gross_proceeds_paise: number;
+  sell_fees_paise: number;
+  net_proceeds_paise: number;
+  realized_pnl_paise: number;
+  shortest_holding_period_days: number;
+  longest_holding_period_days: number;
+};
+
+export type RealizedPnlReportResponse = {
+  from_date: string | null;
+  to_date: string | null;
+  financial_year: number | null;
+  symbols: SymbolRealizedPnl[];
+  matches: RealizedMatch[];
+  total_realized_pnl_paise: number;
+};
+
+export type ReportFilters = { from?: string; to?: string; financial_year?: number };
+
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
 export async function getHealth(): Promise<HealthResponse> {
   return getJson<HealthResponse>("/api/v1/health");
 }
@@ -127,6 +182,60 @@ export async function getPortfolioValuation(): Promise<PortfolioValuationRespons
 
 export async function getPriceCoverage(): Promise<PriceCoverageResponse> {
   return getJson<PriceCoverageResponse>("/api/v1/prices/coverage");
+}
+
+export async function getLatestEqClose(symbol: string): Promise<LatestEqCloseResponse> {
+  return getJson<LatestEqCloseResponse>(
+    `/api/v1/prices/latest?symbol=${encodeURIComponent(symbol)}`,
+  );
+}
+
+export async function getRealizedPnl(
+  filters: ReportFilters = {},
+): Promise<RealizedPnlReportResponse> {
+  const query = new URLSearchParams();
+  if (filters.from) query.set("from", filters.from);
+  if (filters.to) query.set("to", filters.to);
+  if (filters.financial_year !== undefined) {
+    query.set("financial_year", String(filters.financial_year));
+  }
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return getJson<RealizedPnlReportResponse>(`/api/v1/portfolio/realized-pnl${suffix}`);
+}
+
+export async function postLedgerEntry(
+  kind: "deposit" | "withdrawal" | "buy" | "sell",
+  payload: object,
+  idempotencyKey: string,
+): Promise<unknown> {
+  const route = { deposit: "deposits", withdrawal: "withdrawals", buy: "buys", sell: "sells" }[kind];
+  const response = await fetch(`/api/v1/portfolio/${route}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    let detail = `Request failed with status ${response.status}`;
+    try {
+      const body: unknown = await response.json();
+      if (typeof body === "object" && body !== null && "detail" in body) {
+        const value = body.detail;
+        if (typeof value === "string") detail = value;
+        else if (Array.isArray(value)) {
+          detail = value.map((item: unknown) => {
+            if (typeof item !== "object" || item === null || !("msg" in item)) {
+              return "Invalid field";
+            }
+            const location = "loc" in item && Array.isArray(item.loc)
+              ? item.loc.slice(1).join(".") : "field";
+            return `${location}: ${String(item.msg)}`;
+          }).join("; ");
+        }
+      }
+    } catch { /* Keep the status when the error body is unavailable. */ }
+    throw new ApiError(response.status, detail);
+  }
+  return response.json() as Promise<unknown>;
 }
 
 async function getJson<T>(url: string): Promise<T> {

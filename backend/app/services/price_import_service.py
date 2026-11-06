@@ -14,7 +14,14 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models.prices import DailyPrice, ImportBatch, Instrument
+from app.db.models.prices import (
+    DailyPrice,
+    ImportBatch,
+    IngestionRun,
+    Instrument,
+    InstrumentMapping,
+)
+from app.services.market_data_service import NormalizedObservation, record_observation
 
 HEADERS = (
     "TradDt",
@@ -96,6 +103,8 @@ class _PriceRow:
     close_paise: int
     previous_close_paise: int
     volume: int
+    provider_instrument_key: str | None
+    raw_fields: dict[str, str]
 
 
 def import_price_file(
@@ -137,6 +146,7 @@ def import_price_file(
             )
 
         to_add: list[tuple[_PriceRow, Instrument]] = []
+        observed: list[tuple[_PriceRow, Instrument, bool]] = []
         unchanged = 0
         instruments: dict[str, Instrument] = {}
         for row in rows:
@@ -153,6 +163,28 @@ def import_price_file(
                     )
                     session.add(instrument)
                     session.flush()
+                legacy_mapping = session.scalar(
+                    select(InstrumentMapping).where(
+                        InstrumentMapping.instrument_id == instrument.id,
+                        InstrumentMapping.provider == "nse_zip",
+                        InstrumentMapping.symbol == row.symbol,
+                        InstrumentMapping.series == "EQ",
+                    )
+                )
+                if legacy_mapping is None:
+                    session.add(
+                        InstrumentMapping(
+                            instrument_id=instrument.id,
+                            provider="nse_zip",
+                            provider_instrument_key=None,
+                            symbol=row.symbol,
+                            exchange="NSE",
+                            series="EQ",
+                            valid_from=None,
+                            valid_to=None,
+                            identity_status="legacy_unverified",
+                        )
+                    )
                 instruments[row.symbol] = instrument
             if instrument.isin != row.isin:
                 raise PriceImportError(
@@ -167,12 +199,14 @@ def import_price_file(
             if existing is not None:
                 if _same_price(existing, row):
                     unchanged += 1
+                    observed.append((row, instrument, False))
                     continue
                 raise PriceImportError(
                     f"line {row.line}: price conflict for {row.symbol} "
                     f"on {row.trade_date.isoformat()}"
                 )
             to_add.append((row, instrument))
+            observed.append((row, instrument, True))
 
         skipped = sum(skipped_series.values()) + unchanged
         batch = ImportBatch(
@@ -187,11 +221,28 @@ def import_price_file(
         )
         session.add(batch)
         session.flush()
-        for row, instrument in to_add:
-            session.add(
-                DailyPrice(
-                    instrument_id=instrument.id,
-                    import_batch_id=batch.id,
+        run = IngestionRun(
+            provider="nse_zip",
+            source_kind="zip",
+            source_ref=path.name,
+            source_sha256=file_hash,
+            import_batch_id=batch.id,
+            provenance_kind="source",
+        )
+        session.add(run)
+        session.flush()
+        for row, instrument, selected in observed:
+            observation, _ = record_observation(
+                session,
+                ingestion_run=run,
+                instrument_id=instrument.id,
+                value=NormalizedObservation(
+                    provider="nse_zip",
+                    source_record_key=f"{file_hash}:{row.line}",
+                    provider_instrument_key=row.provider_instrument_key,
+                    symbol=row.symbol,
+                    exchange="NSE",
+                    series="EQ",
                     trade_date=row.trade_date,
                     open_paise=row.open_paise,
                     high_paise=row.high_paise,
@@ -199,9 +250,26 @@ def import_price_file(
                     close_paise=row.close_paise,
                     previous_close_paise=row.previous_close_paise,
                     volume=row.volume,
-                    price_basis="unadjusted",
-                )
+                ),
+                raw_payload=row.raw_fields,
+                selected_for_canonical=selected,
             )
+            if selected:
+                session.add(
+                    DailyPrice(
+                        instrument_id=instrument.id,
+                        import_batch_id=batch.id,
+                        source_observation_id=observation.id,
+                        trade_date=row.trade_date,
+                        open_paise=row.open_paise,
+                        high_paise=row.high_paise,
+                        low_paise=row.low_paise,
+                        close_paise=row.close_paise,
+                        previous_close_paise=row.previous_close_paise,
+                        volume=row.volume,
+                        price_basis="unadjusted",
+                    )
+                )
         session.flush()
     return ImportResult(
         file_hash,
@@ -356,7 +424,16 @@ def _parse_eq_row(record: dict[str, str], trade_date: date, line: int) -> _Price
     volume = int(volume_text)
     if volume > 2**63 - 1:
         raise PriceImportError("volume exceeds database integer range")
-    return _PriceRow(line, symbol, isin, trade_date, volume=volume, **prices)
+    return _PriceRow(
+        line,
+        symbol,
+        isin,
+        trade_date,
+        volume=volume,
+        provider_instrument_key=record["FinInstrmId"].strip() or None,
+        raw_fields=dict(record),
+        **prices,
+    )
 
 
 def _paise(raw: str, column: str) -> int:

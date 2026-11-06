@@ -22,7 +22,7 @@ class Bar:
     high_paise: int
     low_paise: int
     close_paise: int
-    previous_close_paise: int
+    previous_close_paise: int | None
     volume: int
 
     def __post_init__(self) -> None:
@@ -31,7 +31,6 @@ class Bar:
             self.high_paise,
             self.low_paise,
             self.close_paise,
-            self.previous_close_paise,
             self.volume,
         )
         if any(
@@ -46,10 +45,16 @@ class Bar:
                 self.high_paise,
                 self.low_paise,
                 self.close_paise,
-                self.previous_close_paise,
             )
             <= 0
             or self.volume < 0
+            or (
+                self.previous_close_paise is not None
+                and (
+                    type(self.previous_close_paise) is not int
+                    or self.previous_close_paise <= 0
+                )
+            )
         ):
             raise ValueError("invalid price bar")
         if not self.low_paise <= self.open_paise <= self.high_paise:

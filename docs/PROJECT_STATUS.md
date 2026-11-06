@@ -1,5 +1,45 @@
 # Project Status
 
+## Phase 7B.2A: Multi-model runtime verification (complete)
+
+- [x] Inspect the existing Phase 7B.1 path and confirm native macOS arm64 / Python 3.12.16.
+- [x] Install approved, pinned ML libraries in `.venv`; record the resolved versions in `backend/requirements-ml.txt`.
+- [x] Add a one-time, explicit final-holdout CLI unlock and private atomic claim; test duplicate refusal and symlink protection.
+- [x] Verify the previous dependency-free backend baseline (351 passed, 1 skipped), Ruff and mypy (102 source files).
+- [x] Train CatBoost regression/classification and scikit-learn Ridge, Elastic Net and Logistic Regression on invented data; check repeat predictions and safe reload.
+- [x] Train Random Forest, Extra Trees and HistGradientBoosting in both tasks; persist with pinned `skops` and a fixed tree-type allowlist.
+- [x] Train CatBoost, Ridge and Random Forest through the trusted synthetic permit and temporary experiment registry.
+- [x] Train and reload LightGBM/XGBoost regression and classification on invented data after installing `libomp` 23.1.5.
+- [x] Add an explicit alternating invented fixture for two-class CLI training while preserving the default fixture and its fingerprint; verify four classifier families through the public gate.
+- [x] Verify native runtime and CLI paths, full backend suite (381 passed, 1 skipped), Ruff, mypy (103 source files) and `pip check`.
+
+No model trained on real data. Phase 7B.2A verifies synthetic infrastructure and native library operation only; it does not establish real-data model quality or trading readiness. The existing synthetic-only safety gate, ledger, market-data storage, backtester and risk validator remain unchanged. See `docs/PHASE_7B_2A_RUNTIME_VERIFICATION.md`.
+
+Release-candidate verification on 2026-11-06: backend 381 passed, 1 skipped; Ruff clean; mypy clean (103 source files); `pip check` found no broken requirements; frontend 31 passed, ESLint clean and production build passed. This verifies the current local checkout, not a released or real-data-trained system.
+
+## Phase 7B.1: Synthetic-only ML training and evaluation infrastructure
+
+- [x] Inspect Phase 7A research contracts and confirm the 296-pass baseline.
+- [x] Keep real-data training disabled; generate deterministic invented fixtures through Phase 7A and validate them again at the ML safety gate.
+- [x] Add typed strategy/timeframe/horizon validation, point-in-time label availability, chronological purging, embargo and walk-forward fold contracts.
+- [x] Add train-only preprocessing, standard-library baselines, optional LightGBM/XGBoost adapters and explicit undefined evaluation metrics.
+- [x] Add a separate Git-ignored, private, atomic experiment registry with duplicate and checksum checks.
+- [x] Add synthetic-only validate/train/evaluate/list CLI commands and design documentation; verify focused and full backend tests (349 passed, 1 skipped), Ruff and mypy (102 source files).
+
+At the end of Phase 7B.1 those optional packages were absent. They are now locally installed, and the user installed `libomp` for LightGBM and XGBoost. No real market data is an approved training set.
+
+## Phase 7A: Offline ML research foundation
+
+- [x] Preserve existing daily market-data, ledger, risk and backtest paths while adding typed intraday, swing and long-term research contracts.
+- [x] Add synthetic-only 1/5/15-minute candle, calendar, availability, feature, target and chronological-split research paths without a production table migration.
+- [x] Add optional daily indicator features with explicit warm-up and OHLC requirements; retain legacy close/volume behavior.
+- [x] Add research-only execution and risk assumption contracts; no order or model training path.
+- [x] Document formulas, leakage checks, data requirements and known limits in `docs/PHASE_7A_DESIGN.md`.
+- [x] Verify full backend regression (296 passed, 1 skipped), Ruff and mypy (93 source files) for this extension.
+- [ ] Obtain licensed, long-span daily and intraday histories with verified availability, adjustment and session metadata before any real-data ML work.
+
+At the end of Phase 7A, no intraday provider, corporate-action adjustment, execution simulator, model training or live trading existed. Phase 7B.1 now adds synthetic-only training. Upstox historical and LTP access remains unresolved; later phases require separate approval.
+
 ## Milestone 1: Project Foundation
 
 - [x] Inspect the repository and development environment.
@@ -20,8 +60,8 @@
 
 ## Decisions
 
-- Work is limited to Milestone 1 until explicit approval for the next phase.
-- No trading strategies, predictions, broker integrations, orders, paid APIs, or cloud deployment are in scope.
+- Phase 6A and its real-database migration are complete. Phase 6B.1 finished as an offline mock pilot; Phase 6B.2 attempted bounded live diagnostics but usable historical access remains blocked by HTTP 403.
+- Existing baseline strategies and synthetic ML experiments are research-only. No live orders, broker execution, paid APIs or cloud deployment are in scope.
 - Dependencies will be project-local and pinned to exact versions.
 - Future schema changes require Alembic before the first durable domain model is released; see ADR 0001.
 - The frontend reaches the backend through Vite's `/api` proxy, verified manually outside the sandbox.
@@ -31,10 +71,11 @@
 - The execution sandbox denies local port binding (`EPERM`) for Uvicorn and Vite. End-to-end proxy verification must be run manually in a local terminal; the user has verified it succeeds there.
 - Phase 4's dashboard panels have automated API and UI tests, but a browser check against an imported temporary database is still needed outside the sandbox.
 - The bhavcopy profile was observed in five samples, not verified against an official specification; the user must verify `ClsPric` semantics and source terms before real use.
+- The opt-in Upstox pilot is not a production-ready source: separately authorized Historical Candle V3 and LTP V3 diagnostics returned HTTP 403. Authorization remains unresolved. Do not automatically retry or make fallback broker requests.
 
 ## Next Task
 
-Phase 5 Part B is implemented. Next: supply a dated delivery buy/sell charge breakdown and real broker rates, verify the golden example, then review a stored-price run on a temporary database copy before any real-data use.
+Wait for review and approval before starting Phase 7B.2B or any later phase. Upstox's repeated HTTP 403, historical-data retention and ML-training rights, longer adjusted daily and intraday histories, and an authoritative session calendar remain unresolved for real-data ML work. The Phase 6 usability browser check, reversal-event design and Phase 5 broker-cost golden example remain pending.
 
 ## Phase 2: Portfolio Ledger and Risk Validator
 
@@ -127,3 +168,55 @@ Phase 5 Part B is implemented. Next: supply a dated delivery buy/sell charge bre
 - Every report states the data range, trading-day count, trial number and historical-results warning. Gross return is net plus charges and adverse slippage impact, an attribution estimate rather than a separate cost-free replay.
 - Reports and run records explicitly flag an unverified cost profile; the placeholder remains `verified: false`, and the broker golden-example test remains pending until actual dated rates and calculator breakdowns are supplied.
 - Runs with no effective transaction charges now require explicit `allow_zero_costs: true` and print a warning; stored-price runs additionally require positive slippage. Synthetic tests cover both refusals and the override.
+
+## Phase 6: Usability
+
+- [x] Add authenticated, read-only realised P&L by symbol and FIFO match, with India-date and April–March financial-year filters and holding periods.
+- [x] Add chronological ledger and per-FIFO-match CSV exports, with formula-safe cells and `Cache-Control: no-store`.
+- [x] Add a dated latest-EQ-close endpoint for future, non-blocking form warnings; retain the existing symbol-coverage endpoint for suggestions.
+- [x] Use Asia/Kolkata calendar dates for manual ledger entry validation: today is allowed and later dates are rejected.
+- [x] Test report totals, filters, export escaping, authentication, same-key/different-payload rejection, and the IST midnight boundary on temporary databases.
+- [x] Add frontend forms with confirmation, pending idempotency recovery, 20% configurable price warnings, and clear errors; add report and export controls.
+- [x] Update the README daily manual-entry routine, private browser-storage guidance, and the no-reversal limitation.
+
+Corrections remain unresolved: the ledger has no edit, delete, reversal, or void endpoint. Opposite trades through the existing POST endpoints are new FIFO events and do not undo earlier Profit Vault credits.
+
+## Phase 6A: Provider-neutral market-data foundation
+
+- [x] Add an additive migration for time-valid instrument mappings, ingestion runs and immutable source observations; retain `Instrument.id`, existing NSE import batches and canonical daily prices.
+- [x] Backfill source observations from existing canonical NSE rows on a disposable database. Mark them as reconstructed; keep unknown raw payload, retrieval time and usable-at time null.
+- [x] Permit absent source/canonical `previous_close` while preserving NSE-supplied values. Keep the backtest mismatch guard dependent on an independently supplied value.
+- [x] Preserve identical observations from independent sources and conflicting revisions without duplicate canonical prices or silent overwrite. Make exact redelivery idempotent and ambiguous identity fail closed.
+- [x] Keep the strict offline NSE ZIP importer, canonical valuation, read-only backtester, ledger and risk behavior working; test with synthetic providers and temporary databases only.
+- [x] Verify migration row counts, IDs, values, provenance, integrity and safe downgrade behavior on a disposable pre-migration database; run full backend and frontend regressions.
+
+### Phase 6A boundaries and decisions
+
+- ADR 0006 records the distinction between source observations and selected canonical EQ daily bars, source-specific idempotency, stable internal instrument IDs and temporal mappings. No historical ticker relationship is inferred.
+- Existing import timestamps are ingestion times, not proven source retrieval or first available-at times. Unknown values stay null; a legacy backfill cannot reconstruct the original CSV payload.
+- Existing `ImportBatch.imported_rows` remains a canonical-row count. Extra independent observations require their own provenance/counting without changing Phase 4 import totals.
+- No Upstox connection, full-history download, corporate-action adjustment, point-in-time features, ML, AI, intraday ingestion, broker execution, ledger change or risk-rule change belongs to Phase 6A.
+- The real `data/` database was migrated to `0004_market_data_foundation` on 3 November 2026 after a verified backup and a successful full-data temporary rehearsal; its legacy values, counts and integrity were unchanged.
+
+## Phase 6B.1: Offline Upstox historical-data pilot
+
+- [x] Add an isolated Historical Candle V3 adapter with injectable HTTP transport, bounded timeouts and retries, and runtime-only Analytics Token loading for future explicit live mode.
+- [x] Validate five synthetic mock instrument-master records against stable internal IDs and ISINs; reject unknown or ambiguous mappings.
+- [x] Parse and store synthetic daily OHLCV observations in integer paise on a temporary database only, with nullable source previous close and no canonical overwrite.
+- [x] Reconcile the five pilot symbols across their common 26–30 October 2026 NSE dates (25 reference observations), reporting exact OHLCV matches, differences, missing sessions and revisions.
+- [x] Run mocked adapter, mapping, idempotency, security and reconciliation tests plus the existing backend/frontend checks; document the offline CLI and limitations.
+
+### Phase 6B.1 boundaries
+
+- Offline mock mode requires no Upstox token and makes no provider request. Mock keys, metadata and candles are synthetic evidence for the code path, not verified real Upstox data.
+- During Phase 6B.1 the CLI refused live mode even if `--allow-live` and a token were present. No Upstox observations were written to the real database.
+- At the end of Phase 6B.1 official API semantics, instrument identity, data-use terms and real NSE reconciliation were still unverified. A mock comparison cannot approve Upstox for a larger historical download.
+- The offline five-stock run used 25 real NSE reference bars and synthetic mock responses: 22 exact matches, one one-paisa close difference, one one-unit volume difference and one missing mock session. These discrepancies were deliberately injected. Identical redelivery created zero new observations, and the real database SHA-256 was unchanged. Full checks: backend 246 passed, 1 skipped; frontend 31 passed; Ruff, mypy (77 files), frontend lint and build passed.
+
+## Phase 6B.2: Bounded live Upstox pilot
+
+- [x] Verify the official Historical Candle V3 endpoint, daily response, instrument master, Analytics Token scope and rate-limit documentation.
+- [x] Verify one official NSE EQ master match, including ISIN and provider key, for each of the five pilot symbols.
+- [x] Enable a five-symbol, five-request maximum live CLI using a private token, fresh temporary database, single-attempt requests and no redirect following.
+- [ ] Obtain one usable real candle response and reconcile all five symbols. **Blocked:** the first authenticated historical GET had an indistinguishable HTTP 401/403 status in that run; later separately authorized Historical Candle V3 and LTP V3 diagnostics each returned HTTP 403. No usable candle was obtained.
+- [x] Record the blocked attempt, zero usable Upstox bars, source-database hash check and unresolved data rights in `docs/reports/UPSTOX_PHASE_6B2_PILOT.md`.

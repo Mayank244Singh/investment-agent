@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import LedgerEntryPanel from "./components/LedgerEntryPanel";
+import RealizedPnlPanel from "./components/RealizedPnlPanel";
+import { formatPaise } from "./lib/ledger";
 
 import {
   getHealth,
@@ -21,6 +24,7 @@ type LoadState<T> =
 type BackendStatus = "loading" | "connected" | "unreachable";
 
 function App() {
+  const [revision, setRevision] = useState(0);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>("loading");
   const [ledger, setLedger] = useState<LoadState<LedgerResponse>>({
     state: "loading",
@@ -62,7 +66,7 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [revision]);
 
   return (
     <main className="app-shell">
@@ -77,6 +81,12 @@ function App() {
       <section className="dashboard-grid" aria-label="Dashboard">
         <StatusCard title="Market overview" status="Unavailable" />
         <PortfolioCard ledger={ledger} />
+        <LedgerEntryPanel
+          symbols={priceCoverage.state === "ready" ? priceCoverage.data.symbols.map((item) => item.symbol) : []}
+          stalenessDays={valuation.state === "ready" ? valuation.data.staleness_limit_days : 5}
+          onRecorded={() => setRevision((current) => current + 1)}
+        />
+        <RealizedPnlPanel revision={revision} />
         <ValuationCard valuation={valuation} />
         <PriceCoverageCard coverage={priceCoverage} />
         <StatusCard title="Intraday engine" status="Not implemented" />
@@ -334,21 +344,6 @@ function Metric({
       <dd>{value}</dd>
     </div>
   );
-}
-
-function formatPaise(paise: number): string {
-  if (!Number.isSafeInteger(paise)) {
-    return "Unavailable";
-  }
-  const value = BigInt(paise);
-  const negative = value < 0n;
-  const absolute = negative ? -value : value;
-  const digits = (absolute / 100n).toString();
-  const grouped = digits.length <= 3
-    ? digits
-    : `${digits.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",")},${digits.slice(-3)}`;
-  const paiseDigits = (absolute % 100n).toString().padStart(2, "0");
-  return `${negative ? "-" : ""}₹${grouped}.${paiseDigits}`;
 }
 
 function BackendStatusIndicator({ status }: { status: BackendStatus }) {

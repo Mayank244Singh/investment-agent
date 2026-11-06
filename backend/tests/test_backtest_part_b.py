@@ -303,6 +303,24 @@ def test_stored_prices_require_positive_slippage_even_with_costs() -> None:
         simulate(stored_origin, charged, configuration(), buy_and_hold(configuration()))
 
 
+def test_stored_prices_with_unknown_source_previous_close_refuse_research_run() -> None:
+    profile_path = (
+        Path(__file__).resolve().parents[1]
+        / "config"
+        / "backtest-cost-placeholder-2026-11-02.json"
+    )
+    charged = replace(
+        CostProfile.from_json(profile_path), verified=True, slippage_bps=Decimal(1)
+    )
+    rows = list(bars().ordered_bars())
+    rows[0] = replace(rows[0], previous_close_paise=None)
+    synthetic = PriceData(rows, origin="synthetic")
+    simulate(synthetic, charged, configuration(), buy_and_hold(configuration()))
+    stored = PriceData(rows, origin="stored")
+    with pytest.raises(ValueError, match="source previous close"):
+        simulate(stored, charged, configuration(), buy_and_hold(configuration()))
+
+
 def test_cli_banner_and_no_env_dependency(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -367,7 +385,7 @@ def test_cli_banner_and_no_env_dependency(
         )
         == 0
     )
-    output = capsys.readouterr().out  # type: ignore[attr-defined]
+    output = capsys.readouterr().out
     assert BANNER in output
     assert UNVERIFIED_COST_WARNING in output
     assert "trial #1" in output

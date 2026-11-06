@@ -152,30 +152,70 @@ def _check_price_data(connection: sqlite3.Connection, discrepancies: list[str]) 
 
     today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
     for price in connection.execute(
-        """SELECT p.id, p.instrument_id, p.import_batch_id, p.trade_date,
+        """SELECT p.id, p.instrument_id, p.import_batch_id,
+                  p.source_observation_id, p.trade_date,
                   p.open_paise, p.high_paise, p.low_paise, p.close_paise,
                   p.previous_close_paise, p.volume, p.price_basis,
-                  i.id AS valid_instrument, b.id AS valid_batch
+                  i.id AS valid_instrument, b.id AS valid_batch,
+                  o.id AS valid_observation,
+                  o.instrument_id AS observed_instrument,
+                  o.trade_date AS observed_date,
+                  o.open_paise AS observed_open,
+                  o.high_paise AS observed_high,
+                  o.low_paise AS observed_low,
+                  o.close_paise AS observed_close,
+                  o.previous_close_paise AS observed_previous_close,
+                  o.volume AS observed_volume
            FROM daily_prices AS p
            LEFT JOIN instruments AS i ON i.id = p.instrument_id
            LEFT JOIN import_batches AS b ON b.id = p.import_batch_id
+           LEFT JOIN source_observations AS o ON o.id = p.source_observation_id
            ORDER BY p.id"""
     ):
         label = f"Daily price {price['id']}"
         if price["valid_instrument"] is None:
             discrepancies.append(f"{label} has no valid instrument")
-        if price["valid_batch"] is None:
+        if price["import_batch_id"] is not None and price["valid_batch"] is None:
             discrepancies.append(f"{label} has no valid import batch")
+        if (
+            price["source_observation_id"] is not None
+            and price["valid_observation"] is None
+        ):
+            discrepancies.append(f"{label} has no valid source observation")
+        if price["import_batch_id"] is None and price["source_observation_id"] is None:
+            discrepancies.append(f"{label} has no provenance")
+        if price["valid_observation"] is not None and any(
+            price[canonical] != price[observed]
+            for canonical, observed in (
+                ("instrument_id", "observed_instrument"),
+                ("trade_date", "observed_date"),
+                ("open_paise", "observed_open"),
+                ("high_paise", "observed_high"),
+                ("low_paise", "observed_low"),
+                ("close_paise", "observed_close"),
+                ("previous_close_paise", "observed_previous_close"),
+                ("volume", "observed_volume"),
+            )
+        ):
+            discrepancies.append(
+                f"{label} differs from its selected source observation"
+            )
         for column in (
             "open_paise",
             "high_paise",
             "low_paise",
             "close_paise",
-            "previous_close_paise",
         ):
             amount = price[column]
             if type(amount) is not int or amount <= 0:
                 discrepancies.append(f"{label} has non-positive or invalid {column}")
+        previous_close = price["previous_close_paise"]
+        if previous_close is not None and (
+            type(previous_close) is not int or previous_close <= 0
+        ):
+            discrepancies.append(
+                f"{label} has non-positive or invalid previous_close_paise"
+            )
         low, high = price["low_paise"], price["high_paise"]
         opening, closing = price["open_paise"], price["close_paise"]
         if all(type(value) is int for value in (low, high, opening, closing)):

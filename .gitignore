@@ -14,6 +14,10 @@ __pycache__/
 data/
 backups/
 backtest-runs/
+ml-experiments/
+/generated-datasets/
+/research-datasets/
+/experiment-tmp/
 *.db
 *.sqlite
 *.sqlite3
@@ -32,6 +36,17 @@ dist/
 build/
 coverage/
 *.tsbuildinfo
+
+# Local logs and rotated logs
+/logs/
+/backend/logs/
+/frontend/logs/
+/*.log
+/*.log.*
+/backend/*.log
+/backend/*.log.*
+/frontend/*.log
+/frontend/*.log.*
 
 # OS and editor files
 .DS_Store

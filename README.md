@@ -53,7 +53,7 @@ The Vite development server reads the non-`VITE_` token only in its Node-side co
 
 ## Daily manual price routine
 
-After each trading day, check the data source's terms yourself, download **one** supported cash-market bhavcopy ZIP manually, and keep it outside the repository (for example in `../sample-data/`). The application never downloads prices. Once the Phase 4 migration has been applied, import the file from the repository root:
+After each trading day, check the data source's terms yourself, download **one** supported cash-market bhavcopy ZIP manually, and keep it outside the repository (for example in `../sample-data/`). This daily routine does not download prices automatically. Once the Phase 4 migration has been applied, import the file from the repository root:
 
 ```sh
 .venv/bin/alembic -c backend/alembic.ini upgrade head
@@ -65,12 +65,36 @@ Replace `YYYYMMDD` with the trading date. The importer accepts only its exact ob
 
 An **Unavailable** holding has no EQ close on or before the as-of date or its last close is older than `PRICE_STALENESS_DAYS` calendar days (default 5). The dashboard shows the reason and last price date when one exists; it never estimates or inserts a zero value. Market value and unrealised P&L totals cover priced holdings only, and unpriced holdings' FIFO cost is shown separately. Every displayed price is labelled end-of-day and dated.
 
+## Offline Upstox comparison pilot
+
+Phase 6B.1 compares mocked Historical Candle V3 responses with existing NSE canonical prices for **RELIANCE, TCS, INFY, HDFCBANK and ICICIBANK**. Their common stored NSE dates are 26–30 October 2026: five sessions and 25 reference observations. The offline command reads the reference database and writes observations only to a new temporary database. It needs no Upstox token and makes no provider request.
+
+From the repository root, replace the three angle-bracket placeholders with absolute local paths. The destination must be a new temporary database, and the mock JSON stays outside the repository:
+
+```sh
+PYTHONPATH=backend .venv/bin/python -m app.cli pilot-upstox --mode offline \
+  --reference-database '<existing-db>' \
+  --database '<new-temp-db>' \
+  --mock-file '<mock-json>'
+```
+
+The mock JSON has `mode: "synthetic_mock"`, an `instruments` list of five explicitly labelled `mock_instrument_master` records, and a `responses` object keyed by the five symbols. Each instrument record supplies `instrument_key`, `trading_symbol`, `exchange`, `segment`, `instrument_type` and `isin`; each response uses `status: "success"` and `data.candles` with timestamp, open, high, low, close, volume and open interest. The values and keys are synthetic test inputs, not verified Upstox identities or exchange data.
+
+Use `--symbols TESTA TESTB TESTC TESTD TESTE` to substitute another set of exactly five EQ symbols in a synthetic reference database; the fixture must use those same symbols. The destination must not exist before the command and must be under the operating system's temporary directory. Remove that destination after reviewing the report. Run the offline checks with `.venv/bin/python -m pytest backend/tests/test_upstox_historical_provider.py backend/tests/test_upstox_pilot_service.py backend/tests/test_upstox_pilot_cli.py backend/tests/test_upstox_reconciliation.py -q`.
+
+The report compares exact integer-paise OHLC and integer volume, with no tolerance. `EXACT_MATCH`, `PRICE_MATCH_VOLUME_DIFF` and `PRICE_DIFF` describe comparable sessions; `MISSING_NSE` and `MISSING_UPSTOX` show one-sided coverage; `REVISION_AMBIGUOUS` means multiple provider observations exist for one instrument and date, so none is chosen automatically. Differences list the source values and signed change. Mock results cannot establish real provider quality. The existing NSE canonical prices remain the valuation and backtest source. The daily candle timestamp is retained in the raw observation, but it does not establish when the completed bar became available; event and availability times stay unknown, and no previous close is invented.
+
+The adapter's daily path, bearer header and candle field order were checked against the official Upstox Historical Candle V3 documentation in Phase 6B.2. The CLI permits only the five approved live pilot symbols with explicit `--mode live --allow-live`, a fresh temporary database and a private `UPSTOX_ANALYTICS_TOKEN` loaded from the backend's git-ignored `.env`. It makes at most five historical GETs, with one attempt each and no automatic retries or fallback broker requests. **Separately authorized Historical Candle V3 and LTP V3 diagnostics both returned HTTP 403.** The authorization issue remains unresolved; this opt-in pilot is not a production-ready market-data source, and no broker execution is enabled. See the [pilot report](docs/reports/UPSTOX_PHASE_6B2_PILOT.md). Keep the token out of frontend variables, reports, logs and Git. The right to retain or train on Upstox data remains unresolved.
+
 ## Current API
 
 - `GET /api/v1/health`: database health check
 - `GET /api/v1/portfolio/ledger`: append-only ledger and book-cost summary
 - `GET /api/v1/portfolio/valuation`: dated end-of-day valuation and priced/unpriced totals
+- `GET /api/v1/portfolio/realized-pnl`: FIFO realised P&L by symbol and match, with optional `from`, `to`, or `financial_year` filter
+- `GET /api/v1/portfolio/ledger.csv` and `GET /api/v1/portfolio/fifo-matches.csv`: private, read-only CSV exports
 - `GET /api/v1/prices/coverage`: latest EQ dates and import-batch provenance
+- `GET /api/v1/prices/latest?symbol=...`: dated close for a non-blocking manual-entry warning
 - `GET /api/v1/risk/rules`: validated non-secret risk configuration
 - `POST /api/v1/risk/validate`: validate a `ProposedTrade`; nothing is executed or stored as an order
 - `POST /api/v1/portfolio/deposits`: append a historical deposit
@@ -157,6 +181,14 @@ The risk validator receives a portfolio snapshot and never queries the database.
 
 The frontend is a React/TypeScript dashboard. Its typed client reads the ledger, risk, valuation, and coverage endpoints through Vite’s `/api` proxy. It shows book-cost and dated end-of-day values, “No data” for empty responses, and an error state on API failures; it does not fabricate values.
 
+## Daily ledger-entry routine
+
+Record a deposit, withdrawal, buy or sell **after it actually happened** using the dashboard. Enter rupees with at most two decimal places, whole share quantities, actual fees, and the trade date in Asia/Kolkata. Today is allowed; later dates are rejected. Date-only forms record midnight IST, so entries on the same date follow their submission order for FIFO. Review the exact gross value, fees and total before confirming. The confirmation warns that recorded entries cannot be undone. Recorded events bypass proposed-trade risk validation; a sell beyond held quantity or withdrawal beyond cash is still rejected.
+
+For a buy or sell, the form suggests symbols from stored EQ instruments and shows the latest stored end-of-day close with its date. It warns if the entered price differs by at least 20% or the close is older than the configured staleness limit. Warnings do not prevent recording a genuine event. To change the non-secret warning threshold, set `VITE_PRICE_WARNING_PERCENT` to a whole percent from 1 to 100 in `frontend/.env.local` and restart Vite; see `frontend/.env.example`. The bearer token stays in the root `.env` and is added only by the development proxy.
+
+After confirming, check the refreshed ledger and valuation. If the response is uncertain, the browser retains the exact payload and idempotency key in local storage; reload and use **Retry same submission**. Do not create another entry for the same event. Once the request definitively succeeds or fails, the pending copy is cleared. Pending financial details are stored in that browser profile, so use a private local profile. Download the ledger or per-FIFO-match CSV through the local proxy if needed, and keep exports private. The realised P&L view groups FIFO matches by symbol and supports date or April–March financial-year filters; it makes no tax calculation or tax claim. Run the integrity command and make a backup after recording entries.
+
 ## Layout
 
 ```text
@@ -191,6 +223,7 @@ backtest-runs/       local trial records (ignored by Git)
 - End-of-day prices are unadjusted; returns across splits, bonuses, and dividends must wait for corporate-action handling.
 - Prices are manual, EQ-only, and limited by the configurable calendar-day staleness threshold; there are no live quotes or automatic downloads.
 - Ticker changes create separate symbol histories; risk capital and risk limits still use FIFO cost, not market value.
+- Recorded entries cannot be undone: there is no edit, delete, reversal, or void endpoint. An opposite trade is a new FIFO event and does not unwind an earlier Profit Vault credit.
 
 ## Backtesting (Phase 5)
 

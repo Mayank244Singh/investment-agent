@@ -24,7 +24,7 @@ def test_price_migration_upgrade_and_downgrade(
     config = Config(str(BACKEND_ROOT / "alembic.ini"))
 
     try:
-        command.upgrade(config, "head")
+        command.upgrade(config, "0003_daily_prices")
         with sqlite3.connect(database) as connection:
             connection.execute("PRAGMA foreign_keys=ON")
             tables = {

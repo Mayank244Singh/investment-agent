@@ -108,9 +108,13 @@ def test_duplicate_instrument_date_is_reported(tmp_path: Path) -> None:
         connection.execute("DROP TABLE daily_prices")
         connection.execute("ALTER TABLE duplicate_prices RENAME TO daily_prices")
         connection.execute(
-            "INSERT INTO daily_prices SELECT 2, instrument_id, import_batch_id, "
+            "INSERT INTO daily_prices (id, instrument_id, import_batch_id, "
             "trade_date, open_paise, high_paise, low_paise, close_paise, "
-            "previous_close_paise, volume, price_basis FROM daily_prices WHERE id = 1"
+            "previous_close_paise, volume, price_basis, source_observation_id) "
+            "SELECT 2, instrument_id, import_batch_id, "
+            "trade_date, open_paise, high_paise, low_paise, close_paise, "
+            "previous_close_paise, volume, price_basis, source_observation_id "
+            "FROM daily_prices WHERE id = 1"
         )
     result = check_ledger_integrity(path)
     assert any("Duplicate daily prices" in item for item in result.discrepancies)

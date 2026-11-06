@@ -7,7 +7,14 @@ from app.db.models.ledger import (
     LotRealization,
     ProfitVaultEntry,
 )
-from app.db.models.prices import DailyPrice, ImportBatch, Instrument
+from app.db.models.prices import (
+    DailyPrice,
+    ImportBatch,
+    IngestionRun,
+    Instrument,
+    InstrumentMapping,
+    SourceObservation,
+)
 
 __all__ = [
     "CapitalMovement",
@@ -17,5 +24,8 @@ __all__ = [
     "ProfitVaultEntry",
     "DailyPrice",
     "ImportBatch",
+    "IngestionRun",
     "Instrument",
+    "InstrumentMapping",
+    "SourceObservation",
 ]

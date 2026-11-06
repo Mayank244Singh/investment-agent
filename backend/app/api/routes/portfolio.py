@@ -1,8 +1,9 @@
 """Append-only portfolio ledger routes."""
 
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, status
+from fastapi import APIRouter, Depends, Header, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db_session
@@ -12,6 +13,12 @@ from app.schemas.portfolio import (
     LedgerResponse,
     LedgerTransactionResponse,
     TradeCreate,
+)
+from app.schemas.portfolio_reports import RealizedPnlReportResponse
+from app.services.portfolio_report_service import (
+    export_fifo_matches_csv,
+    export_ledger_csv,
+    read_realized_pnl_report,
 )
 from app.services.portfolio_service import (
     read_ledger,
@@ -33,6 +40,45 @@ IdempotencyKeyHeader = Annotated[
 def get_ledger(session: SessionDependency) -> LedgerResponse:
     """Return ledger records and derived book-cost balances."""
     return read_ledger(session)
+
+
+@router.get("/realized-pnl", response_model=RealizedPnlReportResponse)
+def get_realized_pnl(
+    session: SessionDependency,
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+    financial_year: Annotated[int | None, Query(ge=1900, le=9998)] = None,
+) -> RealizedPnlReportResponse:
+    return read_realized_pnl_report(session, from_date, to_date, financial_year)
+
+
+@router.get("/ledger.csv")
+def get_ledger_csv(session: SessionDependency) -> Response:
+    return Response(
+        content=export_ledger_csv(session),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": 'attachment; filename="ledger.csv"',
+        },
+    )
+
+
+@router.get("/fifo-matches.csv")
+def get_fifo_matches_csv(
+    session: SessionDependency,
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+    financial_year: Annotated[int | None, Query(ge=1900, le=9998)] = None,
+) -> Response:
+    return Response(
+        content=export_fifo_matches_csv(session, from_date, to_date, financial_year),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": 'attachment; filename="fifo-matches.csv"',
+        },
+    )
 
 
 @router.post(

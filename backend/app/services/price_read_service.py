@@ -1,17 +1,26 @@
 """Read-only as-of valuations and imported price coverage."""
 
+import re
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models.prices import DailyPrice, ImportBatch, Instrument
+from app.db.models.prices import (
+    DailyPrice,
+    ImportBatch,
+    IngestionRun,
+    Instrument,
+    SourceObservation,
+)
 from app.modules.portfolio import LedgerService
+from app.modules.portfolio.errors import LedgerValidationError
 from app.modules.portfolio.ledger_service import HoldingSummary
 from app.schemas.prices import (
     HoldingValuationResponse,
     ImportBatchCoverageResponse,
+    LatestEqCloseResponse,
     PortfolioValuationResponse,
     PriceCoverageResponse,
     SymbolPriceCoverageResponse,
@@ -20,6 +29,48 @@ from app.schemas.prices import (
 )
 
 MARKET_TIMEZONE = ZoneInfo("Asia/Kolkata")
+
+
+def read_latest_eq_close(
+    session: Session, symbol: str, staleness_limit_days: int
+) -> LatestEqCloseResponse:
+    """Read a dated reference close; never infer a price for an unknown symbol."""
+    normalized = symbol.strip().upper()
+    if len(normalized) > 20 or not re.fullmatch(r"[A-Z0-9][A-Z0-9.&-]*", normalized):
+        raise LedgerValidationError("symbol contains unsupported characters")
+    row = session.execute(
+        select(DailyPrice, ImportBatch, IngestionRun)
+        .join(Instrument, DailyPrice.instrument_id == Instrument.id)
+        .outerjoin(ImportBatch, DailyPrice.import_batch_id == ImportBatch.id)
+        .outerjoin(
+            SourceObservation,
+            DailyPrice.source_observation_id == SourceObservation.id,
+        )
+        .outerjoin(IngestionRun, SourceObservation.ingestion_run_id == IngestionRun.id)
+        .where(Instrument.symbol == normalized, Instrument.series == "EQ")
+        .order_by(DailyPrice.trade_date.desc())
+        .limit(1)
+    ).first()
+    if row is None:
+        return LatestEqCloseResponse(
+            symbol=normalized,
+            status="no_eq_price",
+            price_date=None,
+            close_paise=None,
+            source_label=None,
+            file_name=None,
+            staleness_limit_days=staleness_limit_days,
+        )
+    price, batch, run = row
+    return LatestEqCloseResponse(
+        symbol=normalized,
+        status="available",
+        price_date=price.trade_date,
+        close_paise=price.close_paise,
+        source_label=batch.source_label if batch else (run.provider if run else None),
+        file_name=batch.file_name if batch else None,
+        staleness_limit_days=staleness_limit_days,
+    )
 
 
 def read_portfolio_valuation(
@@ -71,8 +122,13 @@ def _value_holding(
         return _unavailable(holding, "no_eq_price")
 
     price_row = session.execute(
-        select(DailyPrice, ImportBatch)
-        .join(ImportBatch, DailyPrice.import_batch_id == ImportBatch.id)
+        select(DailyPrice, ImportBatch, IngestionRun)
+        .outerjoin(ImportBatch, DailyPrice.import_batch_id == ImportBatch.id)
+        .outerjoin(
+            SourceObservation,
+            DailyPrice.source_observation_id == SourceObservation.id,
+        )
+        .outerjoin(IngestionRun, SourceObservation.ingestion_run_id == IngestionRun.id)
         .where(
             DailyPrice.instrument_id == instrument.id,
             DailyPrice.trade_date <= as_of_date,
@@ -91,7 +147,9 @@ def _value_holding(
             "no_price_on_or_before_as_of" if any_price is not None else "no_eq_price",
         )
 
-    price, batch = price_row
+    price, batch, run = price_row
+    source_label = batch.source_label if batch else (run.provider if run else None)
+    file_name = batch.file_name if batch else None
     age_days = (as_of_date - price.trade_date).days
     if age_days > staleness_limit_days:
         return _unavailable(
@@ -99,8 +157,8 @@ def _value_holding(
             "stale_price",
             last_price_date=price.trade_date,
             price_age_days=age_days,
-            source_label=batch.source_label,
-            file_name=batch.file_name,
+            source_label=source_label,
+            file_name=file_name,
         )
 
     market_value = holding.quantity * price.close_paise
@@ -115,8 +173,8 @@ def _value_holding(
         close_paise=price.close_paise,
         market_value_paise=market_value,
         unrealized_pnl_paise=market_value - holding.cost_basis_paise,
-        source_label=batch.source_label,
-        file_name=batch.file_name,
+        source_label=source_label,
+        file_name=file_name,
     )
 
 
