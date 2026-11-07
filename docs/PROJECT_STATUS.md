@@ -1,5 +1,17 @@
 # Project Status
 
+## Phase 7D.1: Point-in-time evidence foundation (implemented, uncommitted)
+
+- [x] Integrate committed Phase 7B.1/7B.2A/7B.2B work into local `main`; verify backend, frontend, Ruff and mypy; repair strict typing in a focused Phase 7B commit. No push.
+- [x] Create `feature/phase-7d1-evidence-foundation` from verified local `main`.
+- [x] Add read-only Indian instrument and typed evidence contracts with exchange, UTC availability/cutoff, provenance, quality, usage eligibility and distinct prediction horizons.
+- [x] Validate completed 1/5/15-minute candles against caller-verified exchange sessions and holidays, with duplicate, missing, delayed, stale and future-bar guards.
+- [x] Add a deterministic opportunity assessment that preserves supporting and contradicting evidence, withholds trade approval and size, and never calls the production risk gate.
+- [x] Add synthetic tests including a future-bar negative control, identity and session failures, evidence disagreement, missing calibration, and no ledger/Profit Vault write path. Review fixes cover off-grid bars, between-close decisions, typed horizons, assessment context, duplicate evidence and explicit wait reasons.
+- [x] Verify full backend tests (427 passed, 1 skipped), Ruff and mypy (109 source files) after review fixes.
+
+The assessment is a research contract only. `ACCEPT` and `ACCEPT_WITH_REDUCED_SIZE` are reserved and cannot be emitted until calibration and sizing are reviewed. No real-data training, order, allocation or broker path was added. See `docs/PHASE_7D_1_EVIDENCE_FOUNDATION.md`.
+
 ## Phase 7B.2B: Real historical-data readiness assessment (implemented)
 
 - [x] Add a provider-neutral, read-only assessment for 1/5/15-minute intraday and daily swing/long-term data, with explicit calendar/holiday/halt evidence and per-symbol coverage.
@@ -85,7 +97,7 @@ At the end of Phase 7A, no intraday provider, corporate-action adjustment, execu
 
 ## Next Task
 
-Review the Phase 7B.2B assessment and resolve provider access, historical-data retention and ML-training rights, longer adjusted daily and intraday histories, corporate actions, point-in-time identity/universe and an authoritative session calendar before proposing real-data training. Do not start Phase 7C without approval. The Phase 6 usability browser check, reversal-event design and Phase 5 broker-cost golden example remain pending.
+After Phase 7D.1 review, prioritize legally usable historical Indian market data from alternative providers. Verify provider access, retention and ML-training rights, long adjusted histories, corporate actions, historical identity/universe and authoritative exchange calendars before more ML features. The Phase 6 usability browser check, reversal-event design and Phase 5 broker-cost golden example remain pending.
 
 ## Phase 2: Portfolio Ledger and Risk Validator
 
