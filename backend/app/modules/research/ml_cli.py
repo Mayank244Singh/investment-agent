@@ -1,5 +1,7 @@
 """Synthetic-only ML research commands; never load app settings or a database."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import importlib.metadata
@@ -82,7 +84,9 @@ def _add_window_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--min-partition-samples", type=int, default=1)
 
 
-def add_ml_parsers(subparsers: argparse._SubParsersAction) -> None:
+def add_ml_parsers(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     """Register bounded commands; none accept arbitrary training-data paths."""
     validate = subparsers.add_parser(
         "research-ml-validate", help="Validate trusted generated synthetic ML data"
@@ -425,7 +429,7 @@ def _get_object(value: object, name: str) -> dict[str, object]:
 def _get_int(value: object, name: str) -> int:
     if type(value) is not int:
         raise ValueError(f"invalid saved {name}")
-    return cast(int, value)
+    return value
 
 
 def _get_str(value: object, name: str) -> str:

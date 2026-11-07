@@ -57,7 +57,7 @@ def test_failed_final_rename_removes_staging_and_keeps_no_record(
     def fail_rename(_source: Path, _target: Path) -> None:
         raise OSError("injected rename failure")
 
-    monkeypatch.setattr(ml_registry.os, "rename", fail_rename)
+    monkeypatch.setattr(os, "rename", fail_rename)
     with pytest.raises(OSError, match="injected"):
         save_experiment(root, {"dataset": "invented"}, {"synthetic": True})
     assert list_experiments(root) == ()

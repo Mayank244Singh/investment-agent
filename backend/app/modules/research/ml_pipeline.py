@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from statistics import median
-from typing import Literal, cast
+from typing import Literal
 
 from app.modules.research.contracts import StrategyFamily, Timeframe
 from app.modules.research.core import (
@@ -798,7 +798,7 @@ class FittedPreprocessor:
             raise ValueError("preprocessor cutoff must be UTC")
         return cls(
             feature_names=tuple(names),
-            missing_policy=cast(Literal["reject", "median"], policy),
+            missing_policy=policy,
             scale=scale, medians=arrays[0], means=arrays[1],
             scales=arrays[2], dataset_fingerprint=expected_dataset_fingerprint,
             fitted_on_cutoff_utc=timestamp, _issuer=_ISSUER,

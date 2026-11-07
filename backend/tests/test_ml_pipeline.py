@@ -12,6 +12,7 @@ from app.modules.research.ml_pipeline import (
     FittedPreprocessor,
     FixtureSpec,
     Preprocessor,
+    ValidatedDataset,
     chronological_partitions,
     make_trusted_synthetic,
     prepare_training,
@@ -21,7 +22,7 @@ from app.modules.research.ml_pipeline import (
 )
 
 
-def _swing(sessions: int = 65):
+def _swing(sessions: int = 65) -> tuple[FixtureSpec, ValidatedDataset]:
     spec = FixtureSpec(
         StrategyFamily.SWING, Timeframe.DAY, 5,
         seed=123, sessions=sessions,
@@ -29,7 +30,7 @@ def _swing(sessions: int = 65):
     return spec, validate_dataset(make_trusted_synthetic(spec), spec)
 
 
-def _intraday():
+def _intraday() -> tuple[FixtureSpec, ValidatedDataset]:
     spec = FixtureSpec(
         StrategyFamily.INTRADAY, Timeframe.MINUTE_15, 60,
         seed=123, sessions=20,
@@ -44,7 +45,9 @@ def _intraday():
     (StrategyFamily.SWING, Timeframe.DAY, 60),
     (StrategyFamily.LONG_TERM, Timeframe.DAY, 10),
 ])
-def test_strategy_timeframe_horizon_gate(strategy, timeframe, horizon) -> None:
+def test_strategy_timeframe_horizon_gate(
+    strategy: StrategyFamily, timeframe: Timeframe, horizon: int,
+) -> None:
     with pytest.raises(ValueError):
         FixtureSpec(strategy, timeframe, horizon, seed=1)
 
@@ -162,7 +165,8 @@ def test_walk_forward_rolling_expanding_and_final_holdout() -> None:
     (StrategyFamily.INTRADAY, Timeframe.MINUTE_15, 60, (10, 8, 4, 4)),
 ])
 def test_default_fixture_supports_three_safe_folds_with_holdout(
-    strategy, timeframe, horizon, sizes,
+    strategy: StrategyFamily, timeframe: Timeframe, horizon: int,
+    sizes: tuple[int, int, int, int],
 ) -> None:
     spec = FixtureSpec(strategy, timeframe, horizon, seed=7)
     dataset = validate_dataset(make_trusted_synthetic(spec), spec)
@@ -245,8 +249,10 @@ def test_direct_training_permit_rejects_raw_or_altered_data() -> None:
         )
 
 
-def test_generator_does_not_access_network_or_database(monkeypatch) -> None:
-    def forbidden(*_args, **_kwargs):
+def test_generator_does_not_access_network_or_database(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def forbidden(*_args: object, **_kwargs: object) -> None:
         raise AssertionError("synthetic ML path accessed network or database")
 
     monkeypatch.setattr(socket.socket, "connect", forbidden)

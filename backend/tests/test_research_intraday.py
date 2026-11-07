@@ -5,6 +5,7 @@ import socket
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -16,6 +17,7 @@ from app.modules.research.intraday import (
     ExchangeSession,
     IntradayCandle,
     IntradayConfig,
+    IntradaySample,
     build_intraday_dataset,
     chronological_intraday_split,
 )
@@ -55,7 +57,7 @@ def invented(
 def sample_at(
     bars: tuple[IntradayCandle, ...], config: IntradayConfig,
     index: int, horizon: int = 5,
-):
+) -> IntradaySample:
     return next(item for item in build_intraday_dataset(bars, config).samples
                 if item.decision_at_utc == bars[index].end_utc
                 and item.target_horizon_minutes == horizon)
@@ -249,7 +251,8 @@ def test_invalid_ohlcv_is_rejected() -> None:
 
 
 def test_synthetic_cli_never_opens_socket_or_database(
-    tmp_path, monkeypatch, capsys,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     bars, config = invented()
     payload = {
@@ -276,7 +279,7 @@ def test_synthetic_cli_never_opens_socket_or_database(
     path = tmp_path / "invented.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
 
-    def forbidden(*_args, **_kwargs):
+    def forbidden(*_args: object, **_kwargs: object) -> None:
         raise AssertionError("research CLI accessed network or database")
 
     monkeypatch.setattr(socket.socket, "connect", forbidden)

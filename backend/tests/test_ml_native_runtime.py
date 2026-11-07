@@ -123,7 +123,9 @@ def test_linear_artifact_rejects_nonfinite_or_wrong_width_state() -> None:
         load_model(changed, expected_sha256=hashlib.sha256(changed).hexdigest())
 
 
-def test_skops_artifact_refuses_untrusted_types_before_loading(monkeypatch) -> None:
+def test_skops_artifact_refuses_untrusted_types_before_loading(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     sio = importlib.import_module("skops.io")
 
     features, labels = _invented("regression")

@@ -3,6 +3,7 @@
 import json
 import socket
 from pathlib import Path
+from typing import NoReturn
 
 import pytest
 
@@ -126,7 +127,7 @@ def test_optional_model_missing_dependency_is_explicit(
     registry = tmp_path / "ml-experiments"
     monkeypatch.setattr(ml_cli, "ML_EXPERIMENTS_ROOT", registry)
 
-    def unavailable(_name: str):
+    def unavailable(_name: str) -> NoReturn:
         raise ml_models.MissingDependencyError("optional ML package missing")
 
     monkeypatch.setattr(ml_models, "_optional_import", unavailable)

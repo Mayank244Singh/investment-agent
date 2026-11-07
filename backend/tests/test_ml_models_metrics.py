@@ -1,11 +1,12 @@
 """Synthetic-only model adapter and metric tests; no real data or I/O."""
 
 import hashlib
+import importlib
 import json
 import math
 from dataclasses import replace
-from types import SimpleNamespace
-from typing import cast
+from types import ModuleType, SimpleNamespace
+from typing import Any, NoReturn, cast
 
 import pytest
 
@@ -102,17 +103,17 @@ def test_feature_order_missing_momentum_and_nonfinite_rejected() -> None:
         model.predict(((1.0,),))
 
 
-def test_optional_adapters_fail_clearly_without_dependencies(monkeypatch) -> None:
-    import app.modules.research.ml_models as module
+def test_optional_adapters_fail_clearly_without_dependencies(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = importlib.import_module
 
-    original = module.importlib.import_module
-
-    def missing(name: str):
+    def missing(name: str) -> ModuleType:
         if name in ("lightgbm", "xgboost"):
             raise ModuleNotFoundError(name)
         return original(name)
 
-    monkeypatch.setattr(module.importlib, "import_module", missing)
+    monkeypatch.setattr(importlib, "import_module", missing)
     for family in ("lightgbm", "xgboost"):
         with pytest.raises(MissingDependencyError, match=family):
             _fit_numeric(family, "regression", ((1.0,), (2.0,)),
@@ -121,13 +122,13 @@ def test_optional_adapters_fail_clearly_without_dependencies(monkeypatch) -> Non
 
 @pytest.mark.parametrize("family", ["lightgbm", "xgboost"])
 def test_optional_adapters_train_predict_and_load_native_artifact_with_mocks(
-    family: str, monkeypatch,
+    family: str, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import app.modules.research.ml_models as module
-
     class FakeDataset:
-        def __init__(self, matrix, label=None, feature_name=None,
-                     free_raw_data=None, feature_names=None):
+        def __init__(
+            self, matrix: Any, label: Any = None, feature_name: Any = None,
+            free_raw_data: Any = None, feature_names: Any = None,
+        ) -> None:
             self.matrix = matrix
             self.label = label
 
@@ -135,21 +136,23 @@ def test_optional_adapters_train_predict_and_load_native_artifact_with_mocks(
         def __init__(self, model_str: str | None = None):
             self.value = float(model_str) if model_str is not None else 0.0
 
-        def predict(self, matrix):
+        def predict(self, matrix: Any) -> list[float]:
             data = matrix.matrix if isinstance(matrix, FakeDataset) else matrix
             return [self.value] * len(data)
 
-        def model_to_string(self):
+        def model_to_string(self) -> str:
             return str(self.value)
 
-        def save_raw(self, raw_format: str):
+        def save_raw(self, raw_format: str) -> bytes:
             assert raw_format == "json"
             return json.dumps({"value": self.value}).encode("utf-8")
 
-        def load_model(self, raw):
+        def load_model(self, raw: Any) -> None:
             self.value = float(json.loads(bytes(raw))["value"])
 
-    def fake_train(settings, dataset, num_boost_round):
+    def fake_train(
+        settings: dict[str, Any], dataset: FakeDataset, num_boost_round: int,
+    ) -> FakeBooster:
         assert settings["seed"] == 11
         assert num_boost_round == 2
         booster = FakeBooster()
@@ -167,20 +170,20 @@ def test_optional_adapters_train_predict_and_load_native_artifact_with_mocks(
         "numpy": fake_numpy, "lightgbm": fake_lightgbm,
         "xgboost": fake_xgboost,
     }
-    original = module.importlib.import_module
-    monkeypatch.setattr(module.importlib, "import_module",
+    original = importlib.import_module
+    monkeypatch.setattr(importlib, "import_module",
                         lambda name: modules.get(name) or original(name))
     monkeypatch.setattr("importlib.metadata.version", lambda _name: "mock-0")
     fitted = _fit_numeric(
         family, "regression", ((1.0,), (2.0,)), (0.2, 0.4),
         ("invented",), 11, {"num_boost_round": 2},
     )
-    assert fitted.predict(((3.0,),)) == (pytest.approx(0.3),)
+    assert fitted.predict(((3.0,),))[0] == pytest.approx(0.3)
     artifact = fitted.serialize()
     loaded = load_model(
         artifact, expected_sha256=hashlib.sha256(artifact).hexdigest()
     )
-    assert loaded.predict(((4.0,),)) == (pytest.approx(0.3),)
+    assert loaded.predict(((4.0,),))[0] == pytest.approx(0.3)
 
 
 def test_model_artifact_schema_checks_after_checksum() -> None:
@@ -197,7 +200,7 @@ def test_model_artifact_schema_checks_after_checksum() -> None:
 
 
 def test_tampered_native_artifact_is_rejected_before_optional_parser(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import app.modules.research.ml_models as module
 
@@ -208,7 +211,7 @@ def test_tampered_native_artifact_is_rejected_before_optional_parser(
         "native_model": "dGFtcGVyZWQ=",
     }).encode("utf-8")
 
-    def forbidden_import(_name: str):
+    def forbidden_import(_name: str) -> NoReturn:
         raise AssertionError("native parser reached before checksum validation")
 
     monkeypatch.setattr(module, "_optional_import", forbidden_import)
