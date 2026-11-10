@@ -1,0 +1,1513 @@
+{
+  "banner": "Past results are not predictions or recommendations. Survivorship bias applies if the universe uses today's constituents. Prices are unadjusted. Short histories cannot support conclusions. No index benchmark: index data is not stored. Cost profile unverified; synthetic results only. Charges and returns are illustrative.",
+  "config_hash_sha256": "e8333e9e3d6b64def06bd75799e4a79a1762ff3c6095032c4c3d72c95bc80ce8",
+  "configuration": {
+    "evaluation_end": "2025-05-23",
+    "evaluation_start": "2025-02-17",
+    "fast_sessions": 10,
+    "simulation": {
+      "allow_zero_costs": false,
+      "annualisation_warning_days": 756,
+      "corporate_action_mode": "stop",
+      "initial_capital_paise": 1000000,
+      "max_previous_volume_percent": "5",
+      "minimum_history_days": 252,
+      "risk_limits": {
+        "daily_loss_timezone": "Asia/Kolkata",
+        "max_daily_loss_percent": "2",
+        "max_loss_per_trade_percent": "1",
+        "max_order_percent": "10",
+        "max_stock_allocation_percent": "20"
+      },
+      "stop_below_close_percent": "5",
+      "universe": [
+        "SYNTHA"
+      ],
+      "universe_as_of": "2025-01-06"
+    },
+    "slow_sessions": 30,
+    "warmup_sessions": 30
+  },
+  "cost_profile": {
+    "broker": "UNVERIFIED_PLACEHOLDER",
+    "brokerage_bps": "10",
+    "depository_sell_paise": 17,
+    "exchange_bps": "2",
+    "gst_bps": "1800",
+    "rates_as_of": "2026-11-02",
+    "regulator_bps": "1",
+    "slippage_bps": "10",
+    "source_note": "Invented nonzero illustration for synthetic tests only; these are NOT broker rates. Replace with dated broker calculator rates and verify before stored-price runs. Per-charge half-up rounding can differ from broker totals by a few paise.",
+    "stamp_buy_bps": "3",
+    "stt_buy_bps": "5",
+    "stt_sell_bps": "7",
+    "verified": false
+  },
+  "data_coverage": {
+    "first_date": "2025-01-06",
+    "last_date": "2025-05-23",
+    "sessions": 100,
+    "symbol": "SYNTHA"
+  },
+  "data_hash_sha256": "0f19369d1f2eec353f488b1e70ea650345be0ff310c552800ddd2c862bf36ea8",
+  "limitations": [
+    "Synthetic outcomes do not demonstrate a profitable trading edge.",
+    "Weekday sessions are invented; no NSE holiday or halt claim.",
+    "Costs and 10 bps adverse slippage are illustrative, unverified rates.",
+    "Daily OHLC has no intraday execution sequence or liquidity evidence.",
+    "No annualised metrics are reported for fewer than 252 sessions."
+  ],
+  "results": {
+    "buy_and_hold": {
+      "closed_sales": 0,
+      "equity_curve": [
+        {
+          "day": "2025-02-17",
+          "equity_paise": 999858,
+          "invested_paise": 95400,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-18",
+          "equity_paise": 999948,
+          "invested_paise": 95490,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-19",
+          "equity_paise": 1000038,
+          "invested_paise": 95580,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-20",
+          "equity_paise": 1000128,
+          "invested_paise": 95670,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-21",
+          "equity_paise": 1000218,
+          "invested_paise": 95760,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-24",
+          "equity_paise": 1000308,
+          "invested_paise": 95850,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-25",
+          "equity_paise": 1000398,
+          "invested_paise": 95940,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-26",
+          "equity_paise": 1000488,
+          "invested_paise": 96030,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-27",
+          "equity_paise": 1000578,
+          "invested_paise": 96120,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-28",
+          "equity_paise": 1000668,
+          "invested_paise": 96210,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-03",
+          "equity_paise": 1000758,
+          "invested_paise": 96300,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-04",
+          "equity_paise": 1000848,
+          "invested_paise": 96390,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-05",
+          "equity_paise": 1000938,
+          "invested_paise": 96480,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-06",
+          "equity_paise": 1001028,
+          "invested_paise": 96570,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-07",
+          "equity_paise": 1001118,
+          "invested_paise": 96660,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-10",
+          "equity_paise": 1001208,
+          "invested_paise": 96750,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-11",
+          "equity_paise": 1001298,
+          "invested_paise": 96840,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-12",
+          "equity_paise": 1001388,
+          "invested_paise": 96930,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-13",
+          "equity_paise": 1001478,
+          "invested_paise": 97020,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-14",
+          "equity_paise": 1001568,
+          "invested_paise": 97110,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-17",
+          "equity_paise": 1001478,
+          "invested_paise": 97020,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-18",
+          "equity_paise": 1001343,
+          "invested_paise": 96885,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-19",
+          "equity_paise": 1001208,
+          "invested_paise": 96750,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-20",
+          "equity_paise": 1001073,
+          "invested_paise": 96615,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-21",
+          "equity_paise": 1000938,
+          "invested_paise": 96480,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-24",
+          "equity_paise": 1000803,
+          "invested_paise": 96345,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-25",
+          "equity_paise": 1000668,
+          "invested_paise": 96210,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-26",
+          "equity_paise": 1000533,
+          "invested_paise": 96075,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-27",
+          "equity_paise": 1000398,
+          "invested_paise": 95940,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-28",
+          "equity_paise": 1000263,
+          "invested_paise": 95805,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-31",
+          "equity_paise": 1000128,
+          "invested_paise": 95670,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-01",
+          "equity_paise": 999993,
+          "invested_paise": 95535,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-02",
+          "equity_paise": 999858,
+          "invested_paise": 95400,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-03",
+          "equity_paise": 999723,
+          "invested_paise": 95265,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-04",
+          "equity_paise": 999588,
+          "invested_paise": 95130,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-07",
+          "equity_paise": 999453,
+          "invested_paise": 94995,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-08",
+          "equity_paise": 999318,
+          "invested_paise": 94860,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-09",
+          "equity_paise": 999183,
+          "invested_paise": 94725,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-10",
+          "equity_paise": 999048,
+          "invested_paise": 94590,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-11",
+          "equity_paise": 998913,
+          "invested_paise": 94455,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-14",
+          "equity_paise": 998778,
+          "invested_paise": 94320,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-15",
+          "equity_paise": 998643,
+          "invested_paise": 94185,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-16",
+          "equity_paise": 998508,
+          "invested_paise": 94050,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-17",
+          "equity_paise": 998373,
+          "invested_paise": 93915,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-18",
+          "equity_paise": 998238,
+          "invested_paise": 93780,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-21",
+          "equity_paise": 998328,
+          "invested_paise": 93870,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-22",
+          "equity_paise": 998508,
+          "invested_paise": 94050,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-23",
+          "equity_paise": 998688,
+          "invested_paise": 94230,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-24",
+          "equity_paise": 998868,
+          "invested_paise": 94410,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-25",
+          "equity_paise": 999048,
+          "invested_paise": 94590,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-28",
+          "equity_paise": 999228,
+          "invested_paise": 94770,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-29",
+          "equity_paise": 999408,
+          "invested_paise": 94950,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-30",
+          "equity_paise": 999588,
+          "invested_paise": 95130,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-01",
+          "equity_paise": 999768,
+          "invested_paise": 95310,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-02",
+          "equity_paise": 999948,
+          "invested_paise": 95490,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-05",
+          "equity_paise": 1000128,
+          "invested_paise": 95670,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-06",
+          "equity_paise": 1000308,
+          "invested_paise": 95850,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-07",
+          "equity_paise": 1000488,
+          "invested_paise": 96030,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-08",
+          "equity_paise": 1000668,
+          "invested_paise": 96210,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-09",
+          "equity_paise": 1000848,
+          "invested_paise": 96390,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-12",
+          "equity_paise": 1001028,
+          "invested_paise": 96570,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-13",
+          "equity_paise": 1001208,
+          "invested_paise": 96750,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-14",
+          "equity_paise": 1001388,
+          "invested_paise": 96930,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-15",
+          "equity_paise": 1001568,
+          "invested_paise": 97110,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-16",
+          "equity_paise": 1001748,
+          "invested_paise": 97290,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-19",
+          "equity_paise": 1001928,
+          "invested_paise": 97470,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-20",
+          "equity_paise": 1002108,
+          "invested_paise": 97650,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-21",
+          "equity_paise": 1002288,
+          "invested_paise": 97830,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-22",
+          "equity_paise": 1002468,
+          "invested_paise": 98010,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-23",
+          "equity_paise": 1002648,
+          "invested_paise": 98190,
+          "stale_symbols": []
+        }
+      ],
+      "fills": [
+        {
+          "charges": {
+            "brokerage_paise": 95,
+            "depository_paise": 0,
+            "exchange_paise": 19,
+            "gst_paise": 22,
+            "regulator_paise": 10,
+            "stamp_paise": 29,
+            "stt_paise": 48
+          },
+          "day": "2025-02-17",
+          "price_paise": 10591,
+          "quantity": 9,
+          "reason": "strategy",
+          "side": "buy",
+          "symbol": "SYNTHA"
+        }
+      ],
+      "metrics": {
+        "annualized_return_percent": null,
+        "annualized_volatility_percent": null,
+        "cost_drag_paise": 322,
+        "daily_volatility_percent": 0.013651555708284717,
+        "final_gross_equity_paise": 1002970,
+        "final_net_equity_paise": 1002648,
+        "first_date": "2025-02-17",
+        "gross_return_percent": "0.297",
+        "initial_capital_paise": 1000000,
+        "last_date": "2025-05-23",
+        "max_drawdown_percent": "0.3324786734400460078596760280",
+        "mean_exposure_percent": "9.583688236486845886368539369",
+        "net_return_percent": "0.2648",
+        "profit_vault_paise": 0,
+        "reduced_quantity": 0,
+        "rejected_trade_count": 0,
+        "rejection_reasons": [],
+        "slippage_impact_paise": 99,
+        "total_costs_paise": 223,
+        "trade_count": 1,
+        "trading_days": 70,
+        "turnover_paise": 95319,
+        "turnover_percent": "9.5319",
+        "unfilled_quantity": 0
+      },
+      "rejections": [],
+      "warnings": [
+        "Insufficient history for annualised metrics",
+        "Universe is limited to instruments present in the supplied data"
+      ],
+      "win_rate_percent": null,
+      "winning_sales": 0
+    },
+    "cash_only": {
+      "closed_sales": 0,
+      "equity_curve": [
+        {
+          "day": "2025-02-17",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-18",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-19",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-20",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-21",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-24",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-25",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-26",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-27",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-28",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-03",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-04",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-05",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-06",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-07",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-10",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-11",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-12",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-13",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-14",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-17",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-18",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-19",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-20",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-21",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-24",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-25",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-26",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-27",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-28",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-31",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-01",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-02",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-03",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-04",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-07",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-08",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-09",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-10",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-11",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-14",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-15",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-16",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-17",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-18",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-21",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-22",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-23",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-24",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-25",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-28",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-29",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-30",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-01",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-02",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-05",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-06",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-07",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-08",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-09",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-12",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-13",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-14",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-15",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-16",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-19",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-20",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-21",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-22",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-23",
+          "equity_paise": 1000000,
+          "invested_paise": 0,
+          "stale_symbols": []
+        }
+      ],
+      "fills": [],
+      "metrics": {
+        "annualized_return_percent": null,
+        "annualized_volatility_percent": null,
+        "cost_drag_paise": 0,
+        "daily_volatility_percent": 0.0,
+        "final_gross_equity_paise": 1000000,
+        "final_net_equity_paise": 1000000,
+        "first_date": "2025-02-17",
+        "gross_return_percent": "0",
+        "initial_capital_paise": 1000000,
+        "last_date": "2025-05-23",
+        "max_drawdown_percent": "0",
+        "mean_exposure_percent": "0",
+        "net_return_percent": "0",
+        "profit_vault_paise": 0,
+        "reduced_quantity": 0,
+        "rejected_trade_count": 0,
+        "rejection_reasons": [],
+        "slippage_impact_paise": 0,
+        "total_costs_paise": 0,
+        "trade_count": 0,
+        "trading_days": 70,
+        "turnover_paise": 0,
+        "turnover_percent": "0",
+        "unfilled_quantity": 0
+      },
+      "rejections": [],
+      "warnings": [
+        "Insufficient history for annualised metrics",
+        "Universe is limited to instruments present in the supplied data"
+      ],
+      "win_rate_percent": null,
+      "winning_sales": 0
+    },
+    "ma_trend_10_30": {
+      "closed_sales": 1,
+      "equity_curve": [
+        {
+          "day": "2025-02-17",
+          "equity_paise": 999858,
+          "invested_paise": 95400,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-18",
+          "equity_paise": 999948,
+          "invested_paise": 95490,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-19",
+          "equity_paise": 1000038,
+          "invested_paise": 95580,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-20",
+          "equity_paise": 1000128,
+          "invested_paise": 95670,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-21",
+          "equity_paise": 1000218,
+          "invested_paise": 95760,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-24",
+          "equity_paise": 1000308,
+          "invested_paise": 95850,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-25",
+          "equity_paise": 1000398,
+          "invested_paise": 95940,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-26",
+          "equity_paise": 1000488,
+          "invested_paise": 96030,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-27",
+          "equity_paise": 1000578,
+          "invested_paise": 96120,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-02-28",
+          "equity_paise": 1000668,
+          "invested_paise": 96210,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-03",
+          "equity_paise": 1000758,
+          "invested_paise": 96300,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-04",
+          "equity_paise": 1000848,
+          "invested_paise": 96390,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-05",
+          "equity_paise": 1000938,
+          "invested_paise": 96480,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-06",
+          "equity_paise": 1001028,
+          "invested_paise": 96570,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-07",
+          "equity_paise": 1001118,
+          "invested_paise": 96660,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-10",
+          "equity_paise": 1001208,
+          "invested_paise": 96750,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-11",
+          "equity_paise": 1001298,
+          "invested_paise": 96840,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-12",
+          "equity_paise": 1001388,
+          "invested_paise": 96930,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-13",
+          "equity_paise": 1001478,
+          "invested_paise": 97020,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-14",
+          "equity_paise": 1001568,
+          "invested_paise": 97110,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-17",
+          "equity_paise": 1001478,
+          "invested_paise": 97020,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-18",
+          "equity_paise": 1001343,
+          "invested_paise": 96885,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-19",
+          "equity_paise": 1001208,
+          "invested_paise": 96750,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-20",
+          "equity_paise": 1001073,
+          "invested_paise": 96615,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-21",
+          "equity_paise": 1000938,
+          "invested_paise": 96480,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-24",
+          "equity_paise": 1000803,
+          "invested_paise": 96345,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-25",
+          "equity_paise": 1000668,
+          "invested_paise": 96210,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-26",
+          "equity_paise": 1000533,
+          "invested_paise": 96075,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-27",
+          "equity_paise": 1000398,
+          "invested_paise": 95940,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-28",
+          "equity_paise": 1000263,
+          "invested_paise": 95805,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-03-31",
+          "equity_paise": 1000128,
+          "invested_paise": 95670,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-01",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-02",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-03",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-04",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-07",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-08",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-09",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-10",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-11",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-14",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-15",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-16",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-17",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-18",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-21",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-22",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-23",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-24",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-25",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-28",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-29",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-04-30",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-01",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-02",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-05",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-06",
+          "equity_paise": 999797,
+          "invested_paise": 0,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-07",
+          "equity_paise": 999653,
+          "invested_paise": 96030,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-08",
+          "equity_paise": 999833,
+          "invested_paise": 96210,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-09",
+          "equity_paise": 1000013,
+          "invested_paise": 96390,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-12",
+          "equity_paise": 1000193,
+          "invested_paise": 96570,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-13",
+          "equity_paise": 1000373,
+          "invested_paise": 96750,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-14",
+          "equity_paise": 1000553,
+          "invested_paise": 96930,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-15",
+          "equity_paise": 1000733,
+          "invested_paise": 97110,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-16",
+          "equity_paise": 1000913,
+          "invested_paise": 97290,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-19",
+          "equity_paise": 1001093,
+          "invested_paise": 97470,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-20",
+          "equity_paise": 1001273,
+          "invested_paise": 97650,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-21",
+          "equity_paise": 1001453,
+          "invested_paise": 97830,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-22",
+          "equity_paise": 1001633,
+          "invested_paise": 98010,
+          "stale_symbols": []
+        },
+        {
+          "day": "2025-05-23",
+          "equity_paise": 1001813,
+          "invested_paise": 98190,
+          "stale_symbols": []
+        }
+      ],
+      "fills": [
+        {
+          "charges": {
+            "brokerage_paise": 95,
+            "depository_paise": 0,
+            "exchange_paise": 19,
+            "gst_paise": 22,
+            "regulator_paise": 10,
+            "stamp_paise": 29,
+            "stt_paise": 48
+          },
+          "day": "2025-02-17",
+          "price_paise": 10591,
+          "quantity": 9,
+          "reason": "strategy",
+          "side": "buy",
+          "symbol": "SYNTHA"
+        },
+        {
+          "charges": {
+            "brokerage_paise": 96,
+            "depository_paise": 17,
+            "exchange_paise": 19,
+            "gst_paise": 23,
+            "regulator_paise": 10,
+            "stamp_paise": 0,
+            "stt_paise": 67
+          },
+          "day": "2025-04-01",
+          "price_paise": 10619,
+          "quantity": 9,
+          "reason": "strategy",
+          "side": "sell",
+          "symbol": "SYNTHA"
+        },
+        {
+          "charges": {
+            "brokerage_paise": 96,
+            "depository_paise": 0,
+            "exchange_paise": 19,
+            "gst_paise": 23,
+            "regulator_paise": 10,
+            "stamp_paise": 29,
+            "stt_paise": 48
+          },
+          "day": "2025-05-07",
+          "price_paise": 10661,
+          "quantity": 9,
+          "reason": "strategy",
+          "side": "buy",
+          "symbol": "SYNTHA"
+        }
+      ],
+      "metrics": {
+        "annualized_return_percent": null,
+        "annualized_volatility_percent": null,
+        "cost_drag_paise": 977,
+        "daily_volatility_percent": 0.010925398530458055,
+        "final_gross_equity_paise": 1002790,
+        "final_net_equity_paise": 1001813,
+        "first_date": "2025-02-17",
+        "gross_return_percent": "0.279",
+        "initial_capital_paise": 1000000,
+        "last_date": "2025-05-23",
+        "max_drawdown_percent": "0.1912001980893958273427266047",
+        "mean_exposure_percent": "6.063094826570857056694202433",
+        "net_return_percent": "0.1813",
+        "profit_vault_paise": 0,
+        "reduced_quantity": 0,
+        "rejected_trade_count": 0,
+        "rejection_reasons": [],
+        "slippage_impact_paise": 297,
+        "total_costs_paise": 680,
+        "trade_count": 3,
+        "trading_days": 70,
+        "turnover_paise": 286839,
+        "turnover_percent": "28.6839",
+        "unfilled_quantity": 0
+      },
+      "rejections": [],
+      "warnings": [
+        "Insufficient history for annualised metrics",
+        "Universe is limited to instruments present in the supplied data"
+      ],
+      "win_rate_percent": "0",
+      "winning_sales": 0
+    }
+  },
+  "scenario_version": "stage-d1-invented-daily-v1",
+  "schema_version": "stage-d1-report-v1",
+  "source": "Invented daily OHLCV; no external market-data or broker input",
+  "synthetic": true
+}

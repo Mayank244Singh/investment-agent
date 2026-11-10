@@ -1,6 +1,8 @@
 # Investment Agent
 
-A local Indian-market portfolio manager with an append-only FIFO ledger, realised P&L, a Profit Vault, independent trade-risk validation, bearer authentication, SQLite backups, guarded restore, read-only integrity checks, and manually imported end-of-day prices. It does not provide live market data, investment advice, predictions, trading strategies, broker integration, or order execution.
+A local Indian-market portfolio manager with an append-only FIFO ledger, realised P&L, a Profit Vault, independent trade-risk validation, bearer authentication, SQLite backups, guarded restore, read-only integrity checks, and manually imported end-of-day prices. A separate, isolated virtual demo supports risk-gated simulated fills on explicitly synthetic prices. It does not provide live market data, investment advice, broker integration or live order execution.
+
+For the optional ₹10,000 virtual demo setup, isolated migration/seed commands, risk rules and limitations, see `docs/STAGE_C2_VIRTUAL_ORDER_IMPLEMENTATION.md`. The demo never uses provisional FYERS candles or canonical market prices.
 
 ## Prerequisites
 

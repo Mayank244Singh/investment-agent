@@ -9,12 +9,13 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import Callable, Mapping, Protocol
+from typing import Callable, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 from zoneinfo import ZoneInfo
 
+from app.services.historical_transport import HistoricalTransport, HttpResponse
 from app.services.market_data_service import MarketDataError, decimal_paise
 
 INDIA_TIMEZONE = ZoneInfo("Asia/Kolkata")
@@ -107,23 +108,6 @@ class UpstoxProviderConfig:
             raise ValueError("Upstox response limit must be 1 to 10 MB")
         if not 1 <= self.max_calendar_days <= 366:
             raise ValueError("Upstox range limit must be 1 to 366 days")
-
-
-@dataclass(frozen=True)
-class HttpResponse:
-    status_code: int
-    body: bytes
-    headers: Mapping[str, str]
-
-
-class HistoricalTransport(Protocol):
-    def get(
-        self,
-        url: str,
-        headers: Mapping[str, str],
-        timeout_seconds: float,
-        max_response_bytes: int,
-    ) -> HttpResponse: ...
 
 
 class UrllibTransport:

@@ -150,3 +150,42 @@ def momentum_ranking(
         return tuple(intents)
 
     return decide
+
+
+def moving_average_trend(
+    config: SimulationConfig,
+    *,
+    symbol: str,
+    fast_sessions: int = 10,
+    slow_sessions: int = 30,
+) -> Strategy:
+    """Hold one long position when completed fast MA exceeds slow MA.
+
+    The simulator receives this decision after the close and can fill it only
+    at a later session's open. Integer cross-products avoid float signals.
+    """
+    if symbol not in config.universe or not 0 < fast_sessions < slow_sessions:
+        raise ValueError("invalid moving-average configuration")
+
+    def decide(view: HistoryView, summary: PortfolioSummary) -> tuple[Intent, ...]:
+        bars = view.bars(symbol)
+        if len(bars) < slow_sessions or bars[-1].day != view.as_of:
+            return ()
+        fast_total = sum(bar.close_paise for bar in bars[-fast_sessions:])
+        slow_total = sum(bar.close_paise for bar in bars[-slow_sessions:])
+        held = next((item for item in summary.holdings if item.symbol == symbol), None)
+        if fast_total * slow_sessions <= slow_total * fast_sessions:
+            return (Intent("sell", symbol, held.quantity),) if held else ()
+        if held:
+            return ()
+        close = bars[-1].close_paise
+        quantity = _buy_quantity(
+            config, summary, symbol, close,
+            config.initial_capital_paise, summary.deployable_cash_paise,
+        )
+        if quantity == 0:
+            return ()
+        stop = int(Decimal(close) * (100 - config.stop_below_close_percent) / 100)
+        return (Intent("buy", symbol, quantity, stop),)
+
+    return decide

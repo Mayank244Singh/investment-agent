@@ -133,6 +133,7 @@ class SimulationResult:
     last_marks: tuple[tuple[str, date, int, bool], ...]
     equity_curve: tuple[EquityPoint, ...]
     slippage_impact_paise: int
+    realized_sale_pnl_paise: tuple[int, ...]
 
 
 Strategy = Callable[[HistoryView, PortfolioSummary], Sequence[Intent]]
@@ -214,6 +215,7 @@ def simulate(
     queued: Sequence[Intent] = ()
     equity_curve: list[EquityPoint] = []
     slippage_impact = 0
+    realized_sales: list[int] = []
     validator = RiskValidator(config.risk_limits)
     evaluation_days = sum(
         trading_start is None or day >= trading_start for day in data.days
@@ -313,9 +315,10 @@ def simulate(
                     stops.get(intent.symbol, 0), intent.stop_loss_paise
                 )
             else:
-                ledger.record_sell(
+                sale = ledger.record_sell(
                     intent.symbol, actual, price, _at_open(day), fee.total_paise
                 )
+                realized_sales.append(sale.realized_pnl_paise)
                 if not any(
                     h.symbol == intent.symbol for h in ledger.get_summary().holdings
                 ):
@@ -453,4 +456,5 @@ def simulate(
         tuple((symbol, *mark) for symbol, mark in sorted(marks.items())),
         tuple(equity_curve),
         slippage_impact,
+        tuple(realized_sales),
     )

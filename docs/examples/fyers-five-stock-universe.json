@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "instruments": [
+    {
+      "symbol": "RELIANCE",
+      "ticker": "NSE:RELIANCE-EQ",
+      "isin": "INE002A01018",
+      "evidence_ref": "instruments.RELIANCE"
+    },
+    {
+      "symbol": "TCS",
+      "ticker": "NSE:TCS-EQ",
+      "isin": "INE467B01029",
+      "evidence_ref": "instruments.TCS"
+    },
+    {
+      "symbol": "INFY",
+      "ticker": "NSE:INFY-EQ",
+      "isin": "INE009A01021",
+      "evidence_ref": "instruments.INFY"
+    },
+    {
+      "symbol": "HDFCBANK",
+      "ticker": "NSE:HDFCBANK-EQ",
+      "isin": "INE040A01034",
+      "evidence_ref": "instruments.HDFCBANK"
+    },
+    {
+      "symbol": "ICICIBANK",
+      "ticker": "NSE:ICICIBANK-EQ",
+      "isin": "INE090A01021",
+      "evidence_ref": "instruments.ICICIBANK"
+    }
+  ]
+}

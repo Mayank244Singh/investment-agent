@@ -158,6 +158,73 @@ export type RealizedPnlReportResponse = {
 
 export type ReportFilters = { from?: string; to?: string; financial_year?: number };
 
+export type VirtualOrder = {
+  side: "buy" | "sell";
+  symbol: string;
+  quantity: number;
+  stop_loss_paise: number | null;
+  order_type: "market";
+};
+
+export type VirtualReason = { code: string; message: string };
+export type VirtualPreview = {
+  approved: boolean;
+  reasons: VirtualReason[];
+  symbol: string;
+  side: "buy" | "sell";
+  quantity: number;
+  quote_date: string | null;
+  source_label: string;
+  reference_paise: number | null;
+  fill_paise: number | null;
+  fees_paise: number;
+  charges: Record<string, number> | null;
+  planned_loss_paise: number | null;
+  cash_impact_paise: number | null;
+  stop_warning: string;
+};
+export type VirtualHolding = {
+  symbol: string;
+  quantity: number;
+  cost_basis_paise: number;
+  market_value_paise: number | null;
+  unrealized_pnl_paise: number | null;
+  price_date: string | null;
+  status: "priced" | "unavailable";
+};
+export type VirtualAccount = {
+  mode: string;
+  currency: "INR";
+  initial_capital_paise: number;
+  cash_balance_paise: number;
+  deployable_cash_paise: number;
+  realized_pnl_paise: number;
+  profit_vault_balance_paise: number;
+  holdings: VirtualHolding[];
+};
+export type VirtualAttempt = {
+  id: number;
+  status: "filled" | "rejected";
+  side: string;
+  symbol: string;
+  quantity: number;
+  attempted_at_utc: string;
+  quote_date: string | null;
+  fill_paise: number | null;
+  fees_paise: number;
+  reasons: VirtualReason[];
+  ledger_transaction_id: number | null;
+  source_label: string;
+};
+export type VirtualSubmission = VirtualAttempt & { account: VirtualAccount };
+export type VirtualQuote = {
+  symbol: string;
+  price_paise: number;
+  price_date: string;
+  source_label: string;
+  fixture_sha256: string;
+};
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -201,6 +268,38 @@ export async function getRealizedPnl(
   }
   const suffix = query.size ? `?${query.toString()}` : "";
   return getJson<RealizedPnlReportResponse>(`/api/v1/portfolio/realized-pnl${suffix}`);
+}
+
+export async function getVirtualAccount(): Promise<VirtualAccount> {
+  return getJson<VirtualAccount>("/api/v1/virtual/account");
+}
+
+export async function getVirtualQuotes(): Promise<VirtualQuote[]> {
+  return getJson<VirtualQuote[]>("/api/v1/virtual/quotes");
+}
+
+export async function getVirtualOrders(): Promise<VirtualAttempt[]> {
+  return getJson<VirtualAttempt[]>("/api/v1/virtual/orders");
+}
+
+export async function previewVirtualOrder(order: VirtualOrder): Promise<VirtualPreview> {
+  return postVirtual<VirtualPreview>("/api/v1/virtual/orders/preview", order);
+}
+
+export async function submitVirtualOrder(
+  order: VirtualOrder, key: string,
+): Promise<VirtualSubmission> {
+  return postVirtual<VirtualSubmission>("/api/v1/virtual/orders", order, key);
+}
+
+async function postVirtual<T>(url: string, body: VirtualOrder, key?: string): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(key ? { "Idempotency-Key": key } : {}) },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new ApiError(response.status, `Virtual request failed (${response.status})`);
+  return response.json() as Promise<T>;
 }
 
 export async function postLedgerEntry(

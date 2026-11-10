@@ -1,5 +1,6 @@
 # Python virtual environments and bytecode
 .venv/
+.venv312/
 __pycache__/
 *.py[cod]
 *.pyo

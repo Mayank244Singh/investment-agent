@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
     database_url: str = f"sqlite:///{DEFAULT_DATABASE_PATH}"
+    virtual_database_url: str | None = None
+    virtual_max_planned_loss_paise: PositiveCount = 5_000
+    virtual_max_daily_loss_paise: PositiveCount = 10_000
+    virtual_max_stock_exposure_paise: PositiveCount = 200_000
+    virtual_quote_staleness_days: PositiveCount = 5
+    virtual_slippage_bps: Annotated[Decimal, Field(gt=0, le=1_000)] = Decimal("10")
     auth_token: AuthToken | None = None
     auth_disabled: bool = False
     backend_host: str = "127.0.0.1"

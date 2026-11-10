@@ -15,6 +15,7 @@ from app.db.models.prices import (
     InstrumentMapping,
     SourceObservation,
 )
+from app.db.models.virtual import VirtualAccount, VirtualOrderAttempt
 
 __all__ = [
     "CapitalMovement",
@@ -28,4 +29,6 @@ __all__ = [
     "Instrument",
     "InstrumentMapping",
     "SourceObservation",
+    "VirtualAccount",
+    "VirtualOrderAttempt",
 ]

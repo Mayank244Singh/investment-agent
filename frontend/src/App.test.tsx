@@ -10,6 +10,9 @@ import {
   getPriceCoverage,
   getRealizedPnl,
   getRiskRules,
+  getVirtualAccount,
+  getVirtualQuotes,
+  getVirtualOrders,
   postLedgerEntry,
   type LedgerResponse,
   type PortfolioValuationResponse,
@@ -25,10 +28,16 @@ vi.mock("./api/client", () => ({
   getPriceCoverage: vi.fn(),
   getRealizedPnl: vi.fn(),
   getRiskRules: vi.fn(),
+  getVirtualAccount: vi.fn(),
+  getVirtualQuotes: vi.fn(),
+  getVirtualOrders: vi.fn(),
   postLedgerEntry: vi.fn(),
 }));
 
 const mockedGetHealth = vi.mocked(getHealth);
+const mockedGetVirtualAccount = vi.mocked(getVirtualAccount);
+const mockedGetVirtualQuotes = vi.mocked(getVirtualQuotes);
+const mockedGetVirtualOrders = vi.mocked(getVirtualOrders);
 const mockedGetLedger = vi.mocked(getLedger);
 const mockedGetPortfolioValuation = vi.mocked(getPortfolioValuation);
 const mockedGetPriceCoverage = vi.mocked(getPriceCoverage);
@@ -136,6 +145,12 @@ const populatedCoverage: PriceCoverageResponse = {
 
 describe("App", () => {
   beforeEach(() => {
+    mockedGetVirtualAccount.mockReset();
+    mockedGetVirtualQuotes.mockReset();
+    mockedGetVirtualOrders.mockReset();
+    mockedGetVirtualAccount.mockReturnValue(new Promise(() => undefined));
+    mockedGetVirtualQuotes.mockReturnValue(new Promise(() => undefined));
+    mockedGetVirtualOrders.mockReturnValue(new Promise(() => undefined));
     mockedGetHealth.mockReset();
     mockedGetLedger.mockReset();
     mockedGetPortfolioValuation.mockReset();

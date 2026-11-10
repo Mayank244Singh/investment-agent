@@ -81,10 +81,12 @@ class LedgerService:
         occurred_at: datetime,
         note: str | None = None,
         idempotency_key: str | None = None,
+        *,
+        commit: bool = True,
     ) -> CapitalMovementResult:
         """Add original capital to the ledger."""
         return self._record_capital_movement(
-            "deposit", amount_paise, occurred_at, note, idempotency_key
+            "deposit", amount_paise, occurred_at, note, idempotency_key, commit
         )
 
     def record_withdrawal(
@@ -108,6 +110,8 @@ class LedgerService:
         fees_paise: int = 0,
         note: str | None = None,
         idempotency_key: str | None = None,
+        *,
+        commit: bool = True,
     ) -> BuyResult:
         """Record a buy and create one FIFO holding lot."""
         normalized_symbol = self._validate_trade_input(
@@ -161,7 +165,8 @@ class LedgerService:
             self._session.add(lot)
             self._session.flush()
             result = BuyResult(transaction.id, lot.id, total_cost_paise)
-            self._session.commit()
+            if commit:
+                self._session.commit()
             return result
         except Exception:
             self._session.rollback()
@@ -176,6 +181,8 @@ class LedgerService:
         fees_paise: int = 0,
         note: str | None = None,
         idempotency_key: str | None = None,
+        *,
+        commit: bool = True,
     ) -> SellResult:
         """Atomically match FIFO lots, realise P&L, and credit positive profit."""
         normalized_symbol = self._validate_trade_input(
@@ -289,7 +296,8 @@ class LedgerService:
                 )
             self._session.flush()
             result = SellResult(transaction.id, total_realized_pnl, vault_credit)
-            self._session.commit()
+            if commit:
+                self._session.commit()
             return result
         except Exception:
             self._session.rollback()
@@ -352,6 +360,7 @@ class LedgerService:
         occurred_at: datetime,
         note: str | None,
         idempotency_key: str | None,
+        commit: bool = True,
     ) -> CapitalMovementResult:
         self._validate_positive_paise(amount_paise, "amount_paise")
         normalized_key = self._normalize_idempotency_key(idempotency_key)
@@ -378,7 +387,8 @@ class LedgerService:
             self._session.add(movement)
             self._session.flush()
             movement_id = movement.id
-            self._session.commit()
+            if commit:
+                self._session.commit()
             cash_change = amount_paise if movement_type == "deposit" else -amount_paise
             return CapitalMovementResult(
                 movement_id, cash_before + cash_change

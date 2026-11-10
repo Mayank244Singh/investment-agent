@@ -1,6 +1,231 @@
 # Project Status
 
-## Phase 7D.1: Point-in-time evidence foundation (implemented, uncommitted)
+## Current project status — PAUSED (11 November 2026)
+
+The owner is prioritizing learning financial markets, trading strategies and
+risk management before continuing development. The existing application,
+research code and isolated pilot evidence are preserved. This is a local
+checkpoint on branch `feature/phase-7d1-evidence-foundation`; it is not a
+production release, and it is not merged or pushed. Historical entries below
+record what was true at each earlier milestone; this section is the current
+handoff.
+
+### Completed functionality at the pause
+
+- FastAPI backend with settings, bearer-token protection, request-ID logging,
+  health checks and authenticated read/write APIs; React/Vite dashboard with
+  ledger forms, portfolio reports, price coverage and a separately labeled
+  virtual trading panel.
+- SQLAlchemy/SQLite models and Alembic migrations; append-only manual ledger,
+  FIFO cost basis, realised P&L, Profit Vault, valuation and read-only integrity
+  check. The independent deterministic risk validator checks proposals; manual
+  past-event ledger entries do not pass through it.
+- Isolated ₹10,000 **synthetic** virtual account with risk-gated simulated
+  orders, idempotency, FIFO ledger reuse and an audit trail. It does not send
+  broker orders or use provisional FYERS candles.
+- Strict local NSE UDiFF ZIP import, daily price storage and provenance,
+  read-only reference validation, and 19-session NSE/FYERS pilot
+  reconciliation. The existing 95 FYERS daily pilot observations are staged
+  only as PROVISIONAL in private storage.
+- Read-only FYERS Historical API adapter, offline-validated provisional
+  staging and resumable five-year collector with reviewed NSE session calendar,
+  immutable checkpoints and isolated paths. Its five-year live acquisition is
+  **blocked** as described below. Upstox access also remains unresolved.
+- Daily-bar backtesting, costs, slippage, benchmark and walk-forward research
+  infrastructure; a reproducible **synthetic** 10/30-session trend baseline.
+  Phase 7A/7B research contracts and nine ML library model families were
+  runtime-tested on synthetic data only. Point-in-time evidence assessment
+  does not promote models, size positions or authorize trades.
+- Existing CLI commands include `backup`, `restore`, `integrity`,
+  `import-prices`, `backtest`, `data-readiness`, `check-fyers-history`,
+  `import-fyers-daily`, `stage-fyers-daily`, `collect-fyers-history`,
+  `validate-nse-references` and virtual trading tools. Use `--help` before
+  invoking a data-writing or live command.
+
+### Unresolved blocker — FYERS HTTP 422
+
+| Request | Symbol / parameters | Result |
+| --- | --- | --- |
+| Original first acquisition window | `NSE:RELIANCE-EQ`, `resolution=D`, `date_format=1`, `range_from=2021-11-10`, `range_to=2022-11-10` | HTTP 422; FYERS code `-50` (sanitized: invalid request parameter); zero completed windows |
+| Diagnostic 1 | Same symbol, single day `2021-11-10` | HTTP 422; code `-50` |
+| Diagnostic 2 | Same symbol, single day `2024-11-11` | HTTP 200; one complete RELIANCE candle for that date |
+
+The newer-date response demonstrates that authentication and the request
+format worked for that request. Because the old single-day request also
+failed, the original 366-day window length is not the sole cause. A
+historical retention or entitlement boundary is suspected, **not confirmed**.
+The precise cutoff is unknown, and the provider's specific error message
+was not retained. Do not claim the collector is repaired or retry the live
+acquisition without a new bounded approval.
+
+### Data integrity and eligibility
+
+The canonical database remained unchanged during the diagnostics. The
+five-year collector completed no acquisition window. The isolated pilot
+database, provisional database, private raw checkpoints, reviewed calendar
+and existing NSE reference ZIPs remain preserved outside Git. Historical
+FYERS ticker–ISIN identity is still PROVISIONAL; corporate-action adjustment
+equivalence and point-in-time availability are not verified. Those
+observations remain ineligible for canonical research, ML training,
+backtests and portfolio or trading decisions.
+
+### Development restart instructions
+
+1. Open `/Users/mayanksingh/.codex/worktrees/phase-7b-integration/investment-agent`
+   on `feature/phase-7d1-evidence-foundation`. Inspect `git status` and the
+   last local checkpoint commit before doing anything else. Do not touch the
+   production database or the synthetic virtual account for FYERS research.
+2. Use Python 3.12. The worktree runtime is `.venv312/bin/python`; the
+   current developer tools are available from the main checkout's `.venv`.
+   For the verified backend test/lint/type commands, from the worktree root:
+
+   ```bash
+   export PYTHONPATH=/Users/mayanksingh/Investment/investment-agent/.venv/lib/python3.12/site-packages:backend
+   PYTHONDONTWRITEBYTECODE=1 .venv312/bin/python -m pytest -p no:cacheprovider backend -q
+   .venv312/bin/python -m ruff check --no-cache backend
+   .venv312/bin/python -m mypy --no-incremental --no-sqlite-cache --cache-dir /dev/null backend/app backend/tests
+   ```
+
+3. Frontend commands from `frontend/` are `npm test`, `npm run lint` and
+   `npm run build`. Dependencies must be local and match `package-lock.json`.
+   The pause verification used a copy of the main checkout's matching
+   `node_modules`; it was not staged.
+4. FYERS App ID is read from private `~/fyers-auth/.env` as `FYERS_APP_ID`,
+   and the access token from private `~/fyers-auth/.access_token`. Keep both
+   outside Git, check permissions/freshness without displaying values, and
+   require explicit approval for each live diagnostic. The isolated pilot
+   root is `~/InvestmentAgentData/pilots/fyers-b1/` (`pilot.db`,
+   `provisional.db`, `raw/`, private calendar and full symbol master). Use
+   `PYTHONPATH=backend .venv312/bin/python -m app.cli --help` and the
+   subcommand `--help` screens to inspect current syntax. Never invoke
+   `collect-fyers-history` live by default.
+5. Important source files: `backend/app/services/fyers_historical_provider.py`,
+   `fyers_history_collector.py`, `fyers_history_cli.py`,
+   `fyers_provisional_service.py`, `nse_reference_validator.py`,
+   `backend/app/modules/research/evidence.py`,
+   `backend/app/modules/backtest/trend_research.py`,
+   `backend/app/services/virtual_trading_service.py`, and `backend/app/cli.py`.
+   The collector design and calendar evidence are in
+   `docs/STAGE_D2_5_FYERS_HISTORY_COLLECTOR.md` and
+   `docs/STAGE_D2_6_NSE_TRADING_CALENDAR.md`.
+
+### Future investigation, only after development resumes
+
+1. Recheck current FYERS documentation and account entitlements; confirm the
+   exact supported historical cutoff with the provider.
+2. Improve sanitized FYERS error reporting so a specific safe provider code
+   and message category survive without leaking secrets or response bodies.
+3. Review date-range planning and provider window limits; change the
+   collector only after the cause is established.
+4. Add offline regression tests, perform one bounded live verification with
+   explicit approval, then resume historical acquisition only if validated.
+5. Independently resolve historical identity, corporate actions, point-in-time
+   availability and data-use eligibility before real-data ML or trading use.
+
+Pause verification: backend **565 passed, 1 skipped**; Ruff passed; mypy
+passed on **126 source files**; frontend **36 passed**, ESLint passed and
+production build passed. The normal frontend `dist/` build was blocked by
+local sandbox permissions; the same build passed with output under
+`/private/tmp`. No live API request or production database write was made
+during this checkpoint.
+
+## Stage D2.6: five-year NSE equity trading calendar
+
+- [x] Review NSE Capital Market holiday notices for 2021–2026, later holiday
+  amendments, ten live special sessions, and the published normal trading rule.
+- [x] Preserve the existing 19 reviewed sessions; create an explicit private
+  1,826-date calendar for 10 November 2021–9 November 2026 (1,241 sessions,
+  585 non-trading dates). All 19 local NSE ZIP dates remain sessions.
+- [x] Tighten the five-year collector preflight to require classification of
+  weekends as well as weekdays; add offline regression tests.
+- [x] Obtain a passing full collector preflight: use the full private FYERS
+  symbol master whose SHA-256 already matches the identity manifest, rather
+  than the five-row subset. Result: `preflight: PASS`, 25 windows, 95 NSE
+  reference rows, zero credential reads or database writes.
+
+See `docs/STAGE_D2_6_NSE_TRADING_CALENDAR.md`. No FYERS request, credential
+read, database write, canonical promotion or real-data training occurred.
+
+## Stage D2.5: provisional five-year FYERS daily collector (offline implementation)
+
+- [x] Reuse the FYERS adapter, provisional SQLite/raw checkpoints, strict NSE
+  reference reconciliation and immutable canonical read path; add inclusive
+  366-day planning, bounded retry/request budgets, private snapshot, resume,
+  progress and reporting. No authentication helper, ledger, risk, virtual
+  account, strategy or ML gate was changed.
+- [x] Add a five-stock example universe with current ticker/ISIN evidence
+  references and synthetic offline tests. Every candle stays PROVISIONAL;
+  historical mapping, adjustment and availability remain unverified.
+- [x] Run offline five-year preflight with zero requests and writes: **BLOCKED**
+  at 2021-11-10 because the reviewed calendar covers only 19 sessions in
+  October–November 2026.
+- [x] Obtain a reviewed full-period NSE session/holiday/special-session
+  calendar and pass offline preflight with the matching full FYERS master.
+  Live collection still needs separate approval. Do not train, backtest on
+  provisional data or expand to 300–500 stocks.
+
+See `docs/STAGE_D2_5_FYERS_HISTORY_COLLECTOR.md`. FYERS Standard's rolling
+five-year boundary may reduce the oldest available dates before acquisition.
+
+## Stage D1: synthetic quantitative research baseline (implemented locally)
+
+- [x] Reuse bounded backtest history, next-open simulation, independent risk gate, FIFO ledger, cost model and metrics for a 10/30-session moving-average trend baseline.
+- [x] Run a fixed 100-session invented daily scenario with 30 warm-up sessions, and compare against risk-capped buy-and-hold and cash over the same 70-session window.
+- [x] Save deterministic JSON and Markdown reports with configuration/data hashes, equity curves, fills, costs and the explicit synthetic-data warning; document the method in `docs/STAGE_D1_QUANT_RESEARCH_BASELINE.md`.
+- [x] Test future-bar isolation, next-open fills, data rejection, zero trades, costs, reproducibility and no network access. No production or provisional database was read or changed.
+- [x] Verify 531 backend tests passed, 1 skipped; Ruff and `git diff --check` passed. At the time, mypy passed on 122 files when excluding Stage C2 `test_virtual_trading.py`; its 17 typing errors were corrected in the pause checkpoint, and the unrestricted 126-file target now passes.
+- [ ] Obtain verified historical identity, corporate-action, point-in-time and independent NSE reference evidence before considering any real-data model training or promotion.
+
+## Stage C2: isolated synthetic virtual trading MVP (implemented locally)
+
+- [x] Add an explicitly seeded INR ₹10,000 virtual SQLite account and virtual-only order audit; keep synthetic quotes out of canonical market-data tables and research inputs.
+- [x] Add risk-gated simulated buy/sell preview and submission, fixed virtual paise caps, idempotency, serialized SQLite transaction, FIFO ledger reuse, and authenticated virtual routes.
+- [x] Add a separately labeled React virtual panel with dated synthetic prices, cash/holdings/P&L, risk reasons, confirmation and trade history.
+- [x] Add temporary-database and browser tests; document the isolated local demonstration in `docs/STAGE_C2_VIRTUAL_ORDER_IMPLEMENTATION.md`.
+- [x] Verify backend `524 passed, 1 skipped`; frontend `36 passed`; mypy `84 source files`; frontend lint/build passed. Ruff passed after a final test-format correction.
+- [x] Run the local two-server demonstration: browser buy, risk rejection without a ledger write, FIFO sell and reload persistence passed on an isolated virtual database. The canonical and provisional database hashes were unchanged; no broker or real market data was connected.
+
+All 95 FYERS observations remain PROVISIONAL and excluded. No canonical/pilot/provisional or production database migration or write was performed in Stage C2.
+
+## Stage B2.2: offline NSE reference validator
+
+- [x] Review NSE All Reports, current website Terms of Use and data-use policy. The All Reports page lists **CM-UDiFF Common Bhavcopy Final (zip)**; the Terms prohibit systematic or automated website collection. No authorized automated ZIP method was established or implemented.
+- [x] List the 14 missing sessions and manual acquisition instructions in `docs/PHASE_B2_2_NSE_OFFLINE_VALIDATION.md`; preserve the five existing ZIPs and all 95 provisional FYERS candles.
+- [x] Add `validate-nse-references`: read-only SQLite, existing strict ZIP parser, manifest SHA-256 and provenance checks, expected calendar/ISIN checks, exact signed FYERS-minus-NSE reconciliation, and source database hash comparison. No canonical promotion or research eligibility.
+- [x] Verify the current private pilot read-only: 5 valid ZIPs, 25 matches, 70 no-reference comparisons, 14 missing dates, unchanged canonical and staging hashes; incomplete result exits 1.
+- [x] Run backend tests (504 passed, 1 skipped), Ruff (pass) and mypy on `app` plus the new tests (80 source files, pass). Synthetic tests include malformed ZIPs, hash/date/ISIN/duplicate failures, signed conflicts, no network and database immutability.
+- [ ] Obtain the 14 NSE ZIPs manually through an authorized route, record provenance outside Git, and rerun the offline validator. Do not infer data rights or point-in-time availability from a matching price.
+
+Historical FYERS ticker identity, corporate-action equivalence, NSE usage rights and first-availability time still block verified promotion and real-data ML.
+
+## Stage B1.2: provisional FYERS daily staging (offline)
+
+- [x] Keep the verified FYERS importer and NSE ZIP importer unchanged; add a separate `PROVISIONAL` staging database and private raw-response checkpoints outside Git.
+- [x] Validate all five current FYERS master matches, the isolated migrated canonical database, the reviewed NSE calendar and the dated NSE evidence record before any credential access or GET.
+- [x] Add exact OHLCV reconciliation against hash-checked local NSE UDiFF ZIPs and existing canonical NSE rows, conflict and missing-session reporting, idempotent checkpoints and fail-closed provisional tests. Provisional rows never enter canonical `daily_prices` or `source_observations`.
+- [x] Run offline preflight: five current identities, 19 sessions, 25 local NSE reference rows, 14 dates per symbol without independent NSE identity evidence; no FYERS request. The empty private `provisional.db` is separate from `pilot.db`.
+- [x] Verify backend regression (493 passed, 1 skipped), Ruff, mypy on `app` plus the new tests (79 files), and `git diff --check`. The broader optional `mypy app tests` target still reports two pre-existing Upstox test re-export errors; no unrelated test file was changed.
+- [ ] Obtain separate approval before any live provisional five-stock pilot. Maximum one GET per symbol, five total; no ML training or canonical promotion.
+- [ ] Obtain dated FYERS ticker–ISIN evidence and the remaining NSE identity coverage before a separate verified promotion design.
+
+See `docs/PHASE_7C_B1_2_PROVISIONAL_IDENTITY.md`. Historical FYERS identity remains **unverified**; the original verified preflight remains blocked.
+
+## Stage B1: FYERS historical daily importer (offline implementation)
+
+- [x] Reuse the FYERS historical adapter and provider-neutral mapping, ingestion-run, observation and canonical daily-price tables; keep the NSE ZIP importer intact.
+- [x] Add a private raw-response checkpoint, bounded one-window import, verified identity and calendar preflight, integer-paise validation, idempotent resume and explicit agreement/conflict/missing-session reports.
+- [x] Add a gated CLI restricted to a private temporary database and raw directory, five pilot symbols, one request per invocation and two live consent flags.
+- [x] Add a read-only five-stock pilot preflight before credential loading or any GET: verify temporary-path isolation, current migration, required tables, SQLite integrity, reviewed calendar, master identities and all five existing verified FYERS mappings. Tests confirm missing prerequisites stop without network access.
+- [x] Add synthetic offline tests for valid import, repeat import, rollback and resume, identity mismatch, conflict preservation, bad OHLCV, missing/unclassified sessions, secret-safe error handling and no-network dry run.
+- [x] Create the approved private `/Users/mayanksingh/InvestmentAgentData/pilots/fyers-b1/` root, `raw/` and isolated `pilot.db`; apply Alembic through `0004_market_data_foundation`; confirm SQLite integrity, foreign keys and required tables.
+- [x] Import the original local NSE 30 October ZIP into `pilot.db` using the existing importer, yielding 2,703 EQ instruments and prices, including all five pilot symbols with source ISINs; no production database write.
+- [x] Retrieve the official public FYERS NSE CM master, record URL, retrieval time and SHA-256 outside Git, and verify that all five current NSE EQ ticker–ISIN rows match the isolated NSE instruments with no ambiguous current match.
+- [x] Prepare the NSE Capital Market calendar for 12 October–6 November 2026 from official circular NSE/CMTR/71775 and the NSE equities timings page: 19 regular sessions, 20 October holiday, six weekends. Validate the private calendar JSON offline.
+- [ ] Obtain independent evidence that each FYERS ticker mapped to the same ISIN throughout the requested historical interval. The current FYERS master snapshot (all five rows updated 8 November) does not establish this. No FYERS `verified` mapping or identity manifest was created; the actual offline preflight returned `pilot identity manifest is unavailable` and **BLOCKED**. No authenticated history request is authorized in this setup step.
+
+Stage A connectivity returned HTTP 200 and five valid RELIANCE candles for 26–30 October 2026. Stage B1 setup made **no** authenticated FYERS request. It imported only the already-local NSE ZIP into the isolated pilot database. Historical FYERS identity remains blocked, and this setup does not authorize the five-stock pilot. No real-data ML training is eligible. See `docs/PHASE_7C_B1_FYERS_IMPORTER.md`.
+
+## Phase 7D.1: Point-in-time evidence foundation (implemented, committed)
 
 - [x] Integrate committed Phase 7B.1/7B.2A/7B.2B work into local `main`; verify backend, frontend, Ruff and mypy; repair strict typing in a focused Phase 7B commit. No push.
 - [x] Create `feature/phase-7d1-evidence-foundation` from verified local `main`.
@@ -97,7 +322,10 @@ At the end of Phase 7A, no intraday provider, corporate-action adjustment, execu
 
 ## Next Task
 
-After Phase 7D.1 review, prioritize legally usable historical Indian market data from alternative providers. Verify provider access, retention and ML-training rights, long adjusted histories, corporate actions, historical identity/universe and authoritative exchange calendars before more ML features. The Phase 6 usability browser check, reversal-event design and Phase 5 broker-cost golden example remain pending.
+Development is paused. Follow the future investigation and restart steps at
+the top of this document only when the owner chooses to resume. The Phase 6
+usability browser check, reversal-event design and Phase 5 broker-cost golden
+example remain pending; none is a reason to bypass the FYERS data gates.
 
 ## Phase 2: Portfolio Ledger and Risk Validator
 
@@ -242,3 +470,13 @@ Corrections remain unresolved: the ledger has no edit, delete, reversal, or void
 - [x] Enable a five-symbol, five-request maximum live CLI using a private token, fresh temporary database, single-attempt requests and no redirect following.
 - [ ] Obtain one usable real candle response and reconcile all five symbols. **Blocked:** the first authenticated historical GET had an indistinguishable HTTP 401/403 status in that run; later separately authorized Historical Candle V3 and LTP V3 diagnostics each returned HTTP 403. No usable candle was obtained.
 - [x] Record the blocked attempt, zero usable Upstox bars, source-database hash check and unresolved data rights in `docs/reports/UPSTOX_PHASE_6B2_PILOT.md`.
+
+## Phase 7C-Data: FYERS historical provider (offline preparation)
+
+- [x] Add a bounded, injectable FYERS v3 history adapter for NSE EQ daily and 1/5/15-minute candles, with runtime-only private token-file access, environment App ID, sanitized errors, one GET and no retries.
+- [x] Reuse the provider-neutral paise/OHLC validation contract and Phase 7D.1 intraday evidence contract; retain unknown first-availability and corporate-action status as unverified.
+- [x] Add explicit FYERS symbol-master/ISIN comparison, synthetic response and safety tests, and an opt-in single-request, no-persistence connectivity CLI.
+- [x] Make one separately approved live Stage A connectivity request: FYERS returned HTTP 200 and five valid RELIANCE daily candles for 26–30 October 2026. It did not persist prices.
+- [x] Receive written FYERS confirmation for personal historical OHLC storage, offline backtesting, and statistical/ML development for the user's own activities. Redistribution or commercial rights are not established.
+
+See `docs/PHASE_7C_DATA_FYERS.md` for configuration, the first connectivity command, official API references and access limitations. The five-stock persistent pilot has not run. Existing Upstox HTTP 403 access remains unresolved.

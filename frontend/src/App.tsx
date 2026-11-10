@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import LedgerEntryPanel from "./components/LedgerEntryPanel";
 import RealizedPnlPanel from "./components/RealizedPnlPanel";
+import VirtualTradingPanel from "./components/VirtualTradingPanel";
 import { formatPaise } from "./lib/ledger";
 
 import {
@@ -79,6 +80,7 @@ function App() {
       </header>
 
       <section className="dashboard-grid" aria-label="Dashboard">
+        <VirtualTradingPanel />
         <StatusCard title="Market overview" status="Unavailable" />
         <PortfolioCard ledger={ledger} />
         <LedgerEntryPanel

@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import sqlite3
 import sys
 import time
 from collections.abc import Mapping, Sequence
@@ -39,12 +40,24 @@ from app.modules.research.io import load_synthetic_research
 from app.modules.research.readiness import ReadinessPolicy
 from app.modules.research.readiness_io import load_calendar_evidence
 from app.modules.research.splits import chronological_split
+from app.services import fyers_history_cli, fyers_import_cli, fyers_provisional_cli
 from app.services.backup_service import BackupError, create_backup, restore_backup
 from app.services.data_readiness_service import ReadinessError, assess_stored_readiness
+from app.services.fyers_historical_provider import (
+    PILOT_SYMBOLS as FYERS_PILOT_SYMBOLS,
+)
+from app.services.fyers_historical_provider import (
+    TOKEN_FILE,
+    FyersError,
+    FyersHistoricalDataProvider,
+    FyersInstrument,
+    read_access_token,
+)
+from app.services.historical_transport import HttpResponse
 from app.services.integrity_service import check_ledger_integrity
+from app.services.nse_reference_validator import validate_references
 from app.services.price_import_service import PriceImportError, import_price_file
 from app.services.upstox_historical_provider import (
-    HttpResponse,
     UpstoxError,
     UpstoxHistoricalDataProvider,
     UpstoxProviderConfig,
@@ -84,6 +97,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _run_upstox_pilot(arguments)
     if arguments.command == "data-readiness":
         return _run_data_readiness(arguments)
+    if arguments.command == "check-fyers-history":
+        return _run_fyers_connectivity(arguments)
+    if arguments.command == "import-fyers-daily":
+        return fyers_import_cli.run(arguments)
+    if arguments.command == "stage-fyers-daily":
+        return fyers_provisional_cli.run(arguments)
+    if arguments.command == "collect-fyers-history":
+        return fyers_history_cli.run(arguments)
+    if arguments.command == "validate-nse-references":
+        try:
+            report = validate_references(
+                canonical_path=arguments.canonical_database,
+                staging_path=arguments.staging_database,
+                calendar_path=arguments.calendar_json,
+                evidence_path=arguments.evidence_json,
+                reference_dirs=tuple(arguments.reference_dir),
+                supplemental_manifest=arguments.supplemental_manifest,
+            )
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
+            print(f"NSE reference validation stopped: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(report.summary(), sort_keys=True))
+        return 0 if report.ready_for_reference_review else 1
     if arguments.command == "research-validate":
         return _run_research_validate(arguments)
     if arguments.command == "research-intraday-validate":
@@ -246,6 +282,36 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Exactly five EQ symbols; defaults to the five-stock pilot",
     )
     pilot_parser.add_argument("--allow-live", action="store_true")
+    fyers_parser = subparsers.add_parser(
+        "check-fyers-history",
+        help="Single, read-only FYERS history connectivity check; no database write",
+    )
+    fyers_parser.add_argument("--symbol", choices=FYERS_PILOT_SYMBOLS,
+                              required=True)
+    fyers_parser.add_argument("--ticker", required=True,
+                              help="Exact ticker independently checked in FYERS master")
+    fyers_parser.add_argument("--from-date", type=date.fromisoformat, required=True)
+    fyers_parser.add_argument("--to-date", type=date.fromisoformat, required=True)
+    fyers_parser.add_argument("--timeframe", choices=("1d", "1m", "5m", "15m"),
+                              default="1d")
+    fyers_parser.add_argument("--token-file", type=Path, default=TOKEN_FILE)
+    fyers_parser.add_argument("--allow-live", action="store_true")
+    fyers_parser.add_argument("--confirm-read-only", action="store_true")
+    fyers_import_cli.add_parser(subparsers)
+    fyers_provisional_cli.add_parser(subparsers)
+    fyers_history_cli.add_parser(subparsers)
+    nse_parser = subparsers.add_parser(
+        "validate-nse-references",
+        help="Read-only NSE ZIP and provisional FYERS reconciliation",
+    )
+    nse_parser.add_argument("--canonical-database", type=Path, required=True)
+    nse_parser.add_argument("--staging-database", type=Path, required=True)
+    nse_parser.add_argument("--calendar-json", type=Path, required=True)
+    nse_parser.add_argument("--evidence-json", type=Path, required=True)
+    nse_parser.add_argument(
+        "--reference-dir", type=Path, action="append", required=True
+    )
+    nse_parser.add_argument("--supplemental-manifest", type=Path)
     readiness_parser = subparsers.add_parser(
         "data-readiness", help="Read-only historical data eligibility report"
     )
@@ -281,6 +347,41 @@ def _build_parser() -> argparse.ArgumentParser:
     intraday_parser.add_argument("--embargo-minutes", type=int, default=0)
     ml_cli.add_ml_parsers(subparsers)
     return parser
+
+
+def _run_fyers_connectivity(arguments: argparse.Namespace) -> int:
+    """Exactly one GET after two explicit switches; no DB or broker execution."""
+    if not (arguments.allow_live and arguments.confirm_read_only):
+        print("No FYERS request made. This command needs --allow-live "
+              "and --confirm-read-only after separate approval.")
+        return 2
+    if (arguments.to_date - arguments.from_date).days not in range(5):
+        print("FYERS connectivity check is limited to at most five calendar days.",
+              file=sys.stderr)
+        return 2
+    try:
+        instrument = FyersInstrument(
+            symbol=arguments.symbol, ticker=arguments.ticker
+        )
+        provider = FyersHistoricalDataProvider(
+            token_getter=lambda: read_access_token(arguments.token_file)
+        )
+        batch = provider.fetch(
+            instrument, Timeframe(arguments.timeframe),
+            arguments.from_date, arguments.to_date,
+        )
+    except FyersError as exc:
+        print(f"FYERS connectivity check: {exc}", file=sys.stderr)
+        return 1
+    print("FYERS HTTP 200; one GET; zero retries; no data saved.")
+    print(f"Candles: {len(batch.candles)}; complete: "
+          f"{sum(bar.is_complete for bar in batch.candles)}")
+    print("Dates: " + ", ".join(sorted({
+        bar.trade_date.isoformat() for bar in batch.candles
+    })))
+    print("Instrument identity remains unverified until a symbol-master "
+          "ISIN mapping and its historical validity are reviewed.")
+    return 0
 
 
 def _run_research_validate(arguments: argparse.Namespace) -> int:
